@@ -196,10 +196,6 @@
         <div class="tab-content" id="suivi-operations">
             <div class="card">
                 <h2 class="card-title">Suivi des opérations</h2>
-                <div style="margin-bottom: 15px;">
-                    <button class="btn btn-sm btn-secondary" onclick="sortOperations('dateHeure')">Trier par date/heure</button>
-                    <button class="btn btn-sm btn-secondary" onclick="sortOperations('dateCreation')">Trier par date de création</button>
-                </div>
                 <div style="overflow-x: auto;">
                     <table>
                         <thead>
@@ -329,7 +325,6 @@
         let editingOperationId = null;
         let editingTipsterId = null;
         let editingBookmakerId = null;
-        let currentSort = 'dateCreation';
 
         const mockMatches = [
             {sport: 'Football', home: 'Barnsley', away: 'Lincoln', date: '2025-11-15', time: '20:00'},
@@ -698,11 +693,6 @@
             }
         }
 
-        function sortOperations(sortType) {
-            currentSort = sortType;
-            renderOperations();
-        }
-
         function renderOperations() {
             const tbody = document.getElementById('operationsTableBody');
             if (operations.length === 0) {
@@ -710,15 +700,11 @@
                 return;
             }
 
-            // Trier les opérations
+            // Trier les opérations par date/heure (plus récent en haut)
             const sortedOperations = [...operations].sort((a, b) => {
-                if (currentSort === 'dateHeure') {
-                    const dateA = new Date(a.dateOperation + 'T' + (a.heureOperation || '00:00'));
-                    const dateB = new Date(b.dateOperation + 'T' + (b.heureOperation || '00:00'));
-                    return dateB - dateA; // Plus récent en premier
-                } else {
-                    return new Date(b.dateCreation) - new Date(a.dateCreation);
-                }
+                const dateA = new Date(a.dateOperation + 'T' + (a.heureOperation || '00:00'));
+                const dateB = new Date(b.dateOperation + 'T' + (b.heureOperation || '00:00'));
+                return dateB - dateA; // Plus récent en premier
             });
 
             tbody.innerHTML = sortedOperations.map(op => {
