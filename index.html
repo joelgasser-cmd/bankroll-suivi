@@ -90,19 +90,22 @@
             <p>Gérez vos paris sportifs et suivez vos performances</p>
         </div>
         <div class="tabs">
-            <button class="tab-button active" data-tab="nouveau-pari">Nouveau pari</button>
+            <button class="tab-button active" data-tab="operations">Opérations</button>
             <button class="tab-button" data-tab="mes-paris">Mes paris</button>
             <button class="tab-button" data-tab="tipsters">Tipsters</button>
             <button class="tab-button" data-tab="bookmakers">Bookmakers</button>
             <button class="tab-button" data-tab="statistiques">Statistiques</button>
+            <button class="tab-button" data-tab="outils">Outils</button>
+            <button class="tab-button" data-tab="reglages">Réglages</button>
         </div>
-        <div class="tab-content active" id="nouveau-pari">
+        
+        <div class="tab-content active" id="operations">
             <div class="card">
                 <div id="editModeBanner" class="edit-mode-banner" style="display: none;">
                     📝 Mode modification activé - Les données actuelles sont conservées
                 </div>
                 <h2 class="card-title">Enregistrer une opération</h2>
-                <p class="card-description">Ajoutez un nouveau pari, dépôt ou retrait</p>
+                <p class="card-description">Ajoutez un nouveau pari, dépôt, retrait ou frais</p>
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Type d'opération</label>
@@ -110,6 +113,7 @@
                             <option value="Pari">Pari</option>
                             <option value="Dépôt">Dépôt</option>
                             <option value="Retrait">Retrait</option>
+                            <option value="Frais">Frais</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -132,8 +136,14 @@
                         </div>
                     </div>
                     <div class="form-grid">
-                        <div class="form-group"><label>Sport</label><input type="text" id="sport" placeholder="Football, Tennis..."></div>
-                        <div class="form-group"><label>Match</label><input type="text" id="match" placeholder="PSG vs OM"></div>
+                        <div class="form-group">
+                            <label>Sport</label>
+                            <input type="text" id="sport" placeholder="Football, Tennis...">
+                        </div>
+                        <div class="form-group">
+                            <label>Match</label>
+                            <input type="text" id="match" placeholder="PSG vs OM">
+                        </div>
                     </div>
                     <div class="form-grid">
                         <div class="form-group"><label>Date du match</label><input type="date" id="dateMatch"></div>
@@ -141,7 +151,16 @@
                     </div>
                     <div class="form-grid">
                         <div class="form-group"><label>Équipe / Sélection</label><input type="text" id="selection" placeholder="PSG"></div>
-                        <div class="form-group"><label>Type de pari</label><input type="text" id="typePari" placeholder="Score exact..."></div>
+                        <div class="form-group">
+                            <label>Type de pari</label>
+                            <select id="typePari">
+                                <option value="Simple">Simple</option>
+                                <option value="Multiple">Multiple</option>
+                                <option value="Score exact">Score exact</option>
+                                <option value="Points">Points</option>
+                                <option value="Marqueur">Marqueur</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="form-grid">
                         <div class="form-group"><label>Mise (€)</label><input type="number" id="mise" step="0.01" placeholder="0.00"></div>
@@ -165,6 +184,7 @@
                 <button id="cancelEditBtn" class="btn btn-secondary btn-block" onclick="cancelEdit()" style="display: none; margin-top: 10px;">Annuler la modification</button>
             </div>
         </div>
+        
         <div class="tab-content" id="mes-paris">
             <div class="card">
                 <h2 class="card-title">Mes paris</h2>
@@ -174,6 +194,7 @@
                 </table>
             </div>
         </div>
+        
         <div class="tab-content" id="tipsters">
             <div class="card">
                 <h2 class="card-title">Tipsters</h2>
@@ -181,7 +202,7 @@
                 <div id="tipsterList"></div>
                 <button class="btn btn-primary" onclick="showTipsterForm()">Ajouter un tipster</button>
                 <div id="tipsterFormContainer" style="display: none; margin-top: 20px;">
-                    <h3>Nouveau Tipster</h3>
+                    <h3 id="tipsterFormTitle">Nouveau Tipster</h3>
                     <div class="form-grid">
                         <div class="form-group"><label>Nom du tipster</label><input type="text" id="tipsterNom"></div>
                         <div class="form-group"><label>Description (optionnel)</label><input type="text" id="tipsterDescription" placeholder="Ex: Twitter @pseudo"></div>
@@ -196,6 +217,7 @@
                 </div>
             </div>
         </div>
+        
         <div class="tab-content" id="bookmakers">
             <div class="card">
                 <h2 class="card-title">Bookmakers</h2>
@@ -212,15 +234,37 @@
                 </div>
             </div>
         </div>
+        
         <div class="tab-content" id="statistiques">
             <div class="card">
                 <h2 class="card-title">Statistiques</h2>
+                <div class="stats-grid" id="statsGrid"></div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="outils">
+            <div class="card">
+                <h2 class="card-title">🛠️ Outils</h2>
+                <p class="card-description">Section en construction - Bientôt de nouvelles fonctionnalités !</p>
+                <div style="text-align: center; padding: 60px 20px; color: #6b7280;">
+                    <div style="font-size: 3rem; margin-bottom: 20px;">🔧</div>
+                    <h3 style="margin-bottom: 10px;">Fonctionnalités à venir</h3>
+                    <p>Nous travaillons sur de nouveaux outils pour améliorer votre expérience.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="reglages">
+            <div class="card">
+                <h2 class="card-title">⚙️ Réglages</h2>
+                <p class="card-description">Gérez vos données et paramètres</p>
+                
                 <div class="export-buttons">
                     <button class="btn btn-success" onclick="exportData()">📥 Exporter les données</button>
                     <button class="btn btn-primary" onclick="document.getElementById('importFile').click()">📤 Importer les données</button>
                     <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(event)">
                 </div>
-                <div class="stats-grid" id="statsGrid"></div>
+                
                 <div class="reset-zone">
                     <h3 style="color: #dc2626; margin-bottom: 15px;">⚠️ Zone dangereuse</h3>
                     <p style="color: #6b7280; margin-bottom: 15px;">Cette action supprimera toutes vos données de manière irréversible.</p>
@@ -229,6 +273,7 @@
             </div>
         </div>
     </div>
+    
     <div class="modal" id="cashoutModal">
         <div class="modal-content">
             <div class="modal-header">💰 Cash-out</div>
@@ -242,6 +287,7 @@
             </div>
         </div>
     </div>
+    
     <script>
         let bookmakers = [];
         let operations = [];
@@ -249,6 +295,7 @@
         let searchTimeout = null;
         let currentCashoutId = null;
         let editingOperationId = null;
+        let editingTipsterId = null;
 
         const mockMatches = [
             {sport: 'Football', home: 'Barnsley', away: 'Lincoln', date: '2025-11-15', time: '20:00'},
@@ -374,6 +421,25 @@
                     showResults(results);
                 }, 300);
             });
+
+            // Autocomplétion pour le sport
+            document.getElementById('sport').addEventListener('input', function() {
+                const value = this.value;
+                if (value.length === 1) {
+                    const completed = autoCompleteSport(value);
+                    if (completed !== value) {
+                        this.value = completed;
+                    }
+                }
+            });
+        }
+
+        function autoCompleteSport(input) {
+            const sportMap = {
+                'F': 'Football', 'B': 'Basketball', 'V': 'Volley', 
+                'R': 'Rugby', '1': 'F1', 'H': 'Hockey'
+            };
+            return sportMap[input.toUpperCase()] || input;
         }
 
         function updateSelects() {
@@ -435,10 +501,12 @@
                 if (!mise || !cote) { alert('Remplissez mise et côte'); return; }
                 op.sport = document.getElementById('sport').value;
                 op.match = document.getElementById('match').value;
+                op.dateMatch = document.getElementById('dateMatch').value || op.date;
                 op.mise = parseFloat(mise);
                 op.cote = parseFloat(cote);
                 op.statut = document.getElementById('statut').value;
                 op.tipster = document.getElementById('operationTipster').value;
+                op.typePari = document.getElementById('typePari').value;
             } else {
                 const montant = document.getElementById('montant').value;
                 if (!montant) { alert('Saisissez un montant'); return; }
@@ -470,6 +538,7 @@
             document.getElementById('mise').value = '';
             document.getElementById('cote').value = '';
             document.getElementById('montant').value = '';
+            document.getElementById('typePari').value = 'Simple';
             document.getElementById('gainPotentiel').textContent = '0.00 €';
             document.getElementById('pariFields').style.display = 'block';
             document.getElementById('depotRetraitFields').style.display = 'none';
@@ -541,8 +610,8 @@
             document.getElementById('cancelEditBtn').style.display = 'block';
             
             document.querySelectorAll('.tab-button, .tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelector('[data-tab="nouveau-pari"]').classList.add('active');
-            document.getElementById('nouveau-pari').classList.add('active');
+            document.querySelector('[data-tab="operations"]').classList.add('active');
+            document.getElementById('operations').classList.add('active');
             
             document.getElementById('operationType').value = op.type;
             document.getElementById('operationBookmaker').value = op.bookmaker;
@@ -552,10 +621,12 @@
                 document.getElementById('depotRetraitFields').style.display = 'none';
                 document.getElementById('sport').value = op.sport || '';
                 document.getElementById('match').value = op.match || '';
+                document.getElementById('dateMatch').value = op.dateMatch || '';
                 document.getElementById('mise').value = op.mise;
                 document.getElementById('cote').value = op.cote;
                 document.getElementById('statut').value = op.statut;
                 document.getElementById('operationTipster').value = op.tipster || '';
+                document.getElementById('typePari').value = op.typePari || 'Simple';
                 calcGain();
             } else {
                 document.getElementById('pariFields').style.display = 'none';
@@ -577,6 +648,8 @@
                     else if (op.statut === 'Perdu') resultat = '-' + op.mise.toFixed(2) + '€';
                     else if (op.statut === 'Remboursé') resultat = '0€';
                     else if (op.statut === 'Cash-out') resultat = '+' + (op.cashoutAmount - op.mise).toFixed(2) + '€';
+                } else if (op.type === 'Frais') {
+                    resultat = '-' + op.montant.toFixed(2) + '€';
                 } else {
                     resultat = (op.type === 'Dépôt' ? '+' : '-') + op.montant.toFixed(2) + '€';
                 }
@@ -610,7 +683,9 @@
                 
                 actionsHtml += '</div>';
                 
-                return `<tr><td>${op.date}</td><td>${op.type}</td><td>${op.bookmaker}</td><td>${tipsterName}</td><td>${op.match || '-'}</td><td>${op.mise ? op.mise.toFixed(2) + '€' : '-'}</td><td>${op.cote || '-'}</td><td><span class="badge ${badge}">${op.statut || '-'}</span></td><td>${resultat}</td><td>${actionsHtml}</td></tr>`;
+                const displayDate = op.type === 'Pari' ? (op.dateMatch || op.date) : op.date;
+                
+                return `<tr><td>${displayDate}</td><td>${op.type}</td><td>${op.bookmaker}</td><td>${tipsterName}</td><td>${op.match || '-'}</td><td>${op.mise ? op.mise.toFixed(2) + '€' : '-'}</td><td>${op.cote || '-'}</td><td><span class="badge ${badge}">${op.statut || '-'}</span></td><td>${resultat}</td><td>${actionsHtml}</td></tr>`;
             }).join('');
         }
 
@@ -629,10 +704,12 @@
             operations.filter(op => op.bookmaker === book.nom).forEach(op => {
                 if (op.type === 'Dépôt') balance += op.montant;
                 else if (op.type === 'Retrait') balance -= op.montant;
+                else if (op.type === 'Frais') balance -= op.montant;
                 else if (op.type === 'Pari') {
                     if (op.statut === 'Gagné') balance += (op.mise * op.cote - op.mise);
                     else if (op.statut === 'Perdu') balance -= op.mise;
                     else if (op.statut === 'Cash-out') balance += (op.cashoutAmount - op.mise);
+                    else if (op.statut === 'En cours') balance -= op.mise;
                 }
             });
             return balance;
@@ -670,24 +747,52 @@
         function showTipsterForm() { 
             document.getElementById('tipsterFormContainer').style.display = 'block';
             document.getElementById('tipsterDetailsContainer').style.display = 'none';
+            document.getElementById('tipsterFormTitle').textContent = 'Nouveau Tipster';
+            editingTipsterId = null;
         }
 
         function cancelTipsterForm() {
             document.getElementById('tipsterFormContainer').style.display = 'none';
             document.getElementById('tipsterNom').value = '';
             document.getElementById('tipsterDescription').value = '';
+            editingTipsterId = null;
         }
 
         function saveTipster() {
             const nom = document.getElementById('tipsterNom').value;
             const description = document.getElementById('tipsterDescription').value;
             if (!nom) { alert('Saisissez un nom'); return; }
-            tipsters.push({id: Date.now(), nom: nom, description: description});
+            
+            if (editingTipsterId) {
+                // Modification
+                const tipster = tipsters.find(t => t.id === editingTipsterId);
+                if (tipster) {
+                    tipster.nom = nom;
+                    tipster.description = description;
+                }
+            } else {
+                // Nouveau tipster
+                tipsters.push({id: Date.now(), nom: nom, description: description});
+            }
+            
             saveData();
             updateSelects();
             renderTipsters();
             cancelTipsterForm();
-            alert('✅ Tipster ajouté !');
+            alert('✅ Tipster ' + (editingTipsterId ? 'modifié' : 'ajouté') + ' !');
+        }
+
+        function editTipster(id) {
+            const tipster = tipsters.find(t => t.id === id);
+            if (!tipster) return;
+            
+            document.getElementById('tipsterNom').value = tipster.nom;
+            document.getElementById('tipsterDescription').value = tipster.description || '';
+            document.getElementById('tipsterFormContainer').style.display = 'block';
+            document.getElementById('tipsterList').style.display = 'none';
+            document.getElementById('tipsterFormTitle').textContent = 'Modifier Tipster';
+            
+            editingTipsterId = id;
         }
 
         function deleteTipster(id) {
@@ -714,7 +819,10 @@
                                 <div class="tipster-name">${t.nom}</div>
                                 ${t.description ? `<div style="color: #6b7280; font-size: 0.9rem;">${t.description}</div>` : ''}
                             </div>
-                            <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteTipster(${t.id})">🗑️</button>
+                            <div>
+                                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); editTipster(${t.id})">✏️</button>
+                                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteTipster(${t.id})">🗑️</button>
+                            </div>
                         </div>
                         <div class="tipster-stats">
                             <div class="tipster-stat">
@@ -722,7 +830,7 @@
                                 <div class="tipster-stat-label">Paris</div>
                             </div>
                             <div class="tipster-stat">
-                                <div class="tipster-stat-value ${stats.profit >= 0 ? 'green' : 'red'}" style="color: ${stats.profit >= 0 ? '#22c55e' : '#ef4444'}">${stats.profit >= 0 ? '+' : ''}${stats.profit.toFixed(2)}€</div>
+                                <div class="tipster-stat-value" style="color: ${stats.profit >= 0 ? '#22c55e' : '#ef4444'}">${stats.profit >= 0 ? '+' : ''}${stats.profit.toFixed(2)}€</div>
                                 <div class="tipster-stat-label">Profit</div>
                             </div>
                             <div class="tipster-stat">
@@ -806,6 +914,8 @@
                     if (op.statut === 'Gagné') profit += (op.mise * op.cote - op.mise);
                     else if (op.statut === 'Perdu') profit -= op.mise;
                     else if (op.statut === 'Cash-out') profit += (op.cashoutAmount - op.mise);
+                } else if (op.type === 'Frais') {
+                    profit -= op.montant;
                 }
             });
             const bankroll = bookmakers.reduce((sum, b) => sum + calcBookmakerBalance(b.id), 0);
