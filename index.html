@@ -418,14 +418,6 @@
             
             let op;
             if (editingOperationId) {
-                op = operations
-function saveOperation() {
-            const type = document.getElementById('operationType').value;
-            const bookmaker = document.getElementById('operationBookmaker').value;
-            if (!bookmaker) { alert('Veuillez sélectionner un bookmaker'); return; }
-            
-            let op;
-            if (editingOperationId) {
                 op = operations.find(o => o.id === editingOperationId);
                 if (!op) return;
             } else {
