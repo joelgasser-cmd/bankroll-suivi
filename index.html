@@ -254,7 +254,7 @@
         </div>
         
         <!-- Onglet Enregistrer -->
-        <div class="tab-content active" id="enregistrer">
+        <div class="tab-content" id="enregistrer">
             <div class="card">
                 <div id="editModeBanner" class="edit-mode-banner" style="display: none;">
                     📝 Mode modification activé - Les données actuelles sont conservées
@@ -518,13 +518,12 @@
             'Golf': '⛳', 'Boxe': '🥊'
         };
 
-        // === DÉTECTION MOBILE ET INITIALISATION ===
+        // === INITIALISATION CORRIGÉE ===
         function initializeApp() {
             console.log('Démarrage sur:', isMobile ? 'Mobile' : 'Desktop');
             
-            if (isMobile) {
-                document.getElementById('mobileLoader').classList.add('active');
-            }
+            // Cacher TOUS les contenus au début
+            hideAllContent();
             
             try {
                 // Initialiser Firebase
@@ -537,8 +536,10 @@
                 auth.onAuthStateChanged((user) => {
                     currentUser = user;
                     if (user) {
+                        console.log('Utilisateur connecté:', user.email);
                         showAppUI(user);
                     } else {
+                        console.log('Aucun utilisateur connecté');
                         showAuthUI();
                     }
                 }, (error) => {
@@ -552,46 +553,39 @@
             }
         }
 
+        function hideAllContent() {
+            document.getElementById('authContainer').style.display = 'none';
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('appContent').style.display = 'none';
+            document.getElementById('mobileLoader').style.display = 'none';
+            // Cacher tous les onglets
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+        }
+
         // === MODE LOCAL SANS FIREBASE ===
         function showLocalMode() {
             console.log('Mode local activé');
             
-            // Masquer le loader mobile
-            if (isMobile) {
-                document.getElementById('mobileLoader').classList.remove('active');
-            }
-            
+            hideAllContent();
             loadDataFromLocalStorage();
             updateUI();
             
             // Afficher directement l'application
-            document.getElementById('authContainer').style.display = 'none';
-            document.getElementById('userInfo').style.display = 'none';
             document.getElementById('appContent').style.display = 'block';
-            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
             document.getElementById('enregistrer').style.display = 'block';
             
             showSyncStatus('📱 Mode local - Données locales', 'synced');
         }
 
         function showAuthUI() {
-            // Masquer le loader mobile
-            if (isMobile) {
-                document.getElementById('mobileLoader').classList.remove('active');
-            }
-            
+            hideAllContent();
             document.getElementById('authContainer').style.display = 'block';
-            document.getElementById('userInfo').style.display = 'none';
-            document.getElementById('appContent').style.display = 'none';
         }
 
         function showAppUI(user) {
-            // Masquer le loader mobile
-            if (isMobile) {
-                document.getElementById('mobileLoader').classList.remove('active');
-            }
-            
-            document.getElementById('authContainer').style.display = 'none';
+            hideAllContent();
             document.getElementById('userInfo').style.display = 'block';
             document.getElementById('appContent').style.display = 'block';
             
@@ -606,16 +600,20 @@
                 userAnonymous.textContent = '';
             }
             
-            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
             document.getElementById('enregistrer').style.display = 'block';
             
             loadUserData();
         }
 
-        // === GESTION DES DONNÉES AMÉLIORÉE POUR MOBILE ===
+        // === GESTION DES DONNÉES CORRIGÉE ===
         function loadDataFromLocalStorage() {
             try {
                 console.log('Chargement des données locales...');
+                
+                // Réinitialiser les tableaux
+                bookmakers = [];
+                operations = [];
+                tipsters = [];
                 
                 const savedBookmakers = localStorage.getItem('bookmakers');
                 const savedOperations = localStorage.getItem('operations');
@@ -624,41 +622,40 @@
                 if (savedBookmakers) { 
                     bookmakers = JSON.parse(savedBookmakers);
                     console.log('Bookmakers chargés:', bookmakers.length);
-                } else {
-                    bookmakers = [
-                        {id: 1, nom: 'Loro', soldeInitial: 100},
-                        {id: 2, nom: 'bet365', soldeInitial: 100},
-                        {id: 3, nom: 'Betclic', soldeInitial: 100}
-                    ];
-                    console.log('Bookmakers par défaut créés');
                 }
                 
                 if (savedOperations) {
                     operations = JSON.parse(savedOperations);
                     console.log('Opérations chargées:', operations.length);
-                } else {
-                    operations = [];
-                    console.log('Aucune opération trouvée');
                 }
                 
                 if (savedTipsters) {
                     tipsters = JSON.parse(savedTipsters);
                     console.log('Tipsters chargés:', tipsters.length);
-                } else {
-                    tipsters = [];
-                    console.log('Aucun tipster trouvé');
+                }
+                
+                // Si pas de données, créer des bookmakers par défaut
+                if (bookmakers.length === 0) {
+                    bookmakers = [
+                        {id: Date.now(), nom: 'Loro', soldeInitial: 100},
+                        {id: Date.now() + 1, nom: 'bet365', soldeInitial: 100},
+                        {id: Date.now() + 2, nom: 'Betclic', soldeInitial: 100}
+                    ];
+                    console.log('Bookmakers par défaut créés');
+                    saveDataToLocalStorage();
                 }
                 
             } catch (error) {
                 console.error('Erreur chargement local:', error);
                 // Réinitialiser avec des données par défaut
                 bookmakers = [
-                    {id: 1, nom: 'Loro', soldeInitial: 100},
-                    {id: 2, nom: 'bet365', soldeInitial: 100},
-                    {id: 3, nom: 'Betclic', soldeInitial: 100}
+                    {id: Date.now(), nom: 'Loro', soldeInitial: 100},
+                    {id: Date.now() + 1, nom: 'bet365', soldeInitial: 100},
+                    {id: Date.now() + 2, nom: 'Betclic', soldeInitial: 100}
                 ];
                 operations = [];
                 tipsters = [];
+                saveDataToLocalStorage();
                 console.log('Données réinitialisées suite à une erreur');
             }
         }
@@ -671,64 +668,73 @@
                 console.log('Données sauvegardées localement');
             } catch (error) {
                 console.error('Erreur sauvegarde locale:', error);
-                alert('Erreur lors de la sauvegarde des données');
             }
         }
 
-        async function loadUserData() {
-            if (!currentUser || !database) {
-                loadDataFromLocalStorage();
-                updateUI();
+        function saveData() {
+            saveDataToLocalStorage();
+            if (currentUser && database) {
+                saveDataToFirebase();
+            }
+        }
+
+        // === FONCTIONS D'AUTHENTIFICATION ===
+        async function login() {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            
+            if (!email || !password) {
+                alert('Veuillez remplir tous les champs');
                 return;
             }
             
-            showSyncStatus('🔄 Chargement...', 'syncing');
-            
             try {
-                const userDataPath = `users/${currentUser.uid}`;
-                const snapshot = await database.ref(userDataPath).once('value');
-                const data = snapshot.val();
-                
-                if (data) {
-                    bookmakers = data.bookmakers || [];
-                    operations = data.operations || [];
-                    tipsters = data.tipsters || [];
-                    console.log('Données Firebase chargées:', {
-                        bookmakers: bookmakers.length,
-                        operations: operations.length,
-                        tipsters: tipsters.length
-                    });
-                    showSyncStatus('✅ Données chargées', 'synced');
-                } else {
-                    console.log('Aucune donnée Firebase, utilisation des données locales');
-                    loadDataFromLocalStorage();
-                }
-                
-                updateUI();
+                showSyncStatus('🔄 Connexion...', 'syncing');
+                await auth.signInWithEmailAndPassword(email, password);
             } catch (error) {
-                console.error('Erreur chargement Firebase:', error);
-                loadDataFromLocalStorage();
-                updateUI();
-                showSyncStatus('⚠️ Données locales chargées', 'synced');
+                console.error('Erreur connexion:', error);
+                alert('Erreur de connexion: ' + error.message);
             }
         }
 
-        function updateUI() {
-            console.log('Mise à jour de l interface...');
+        async function signup() {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            
+            if (!email || !password) {
+                alert('Veuillez remplir tous les champs');
+                return;
+            }
+            
+            if (password.length < 6) {
+                alert('Le mot de passe doit contenir au moins 6 caractères');
+                return;
+            }
+            
             try {
-                updateSelects();
-                renderBookmakers();
-                renderOperations();
-                renderTipsters();
-                renderStats();
-                
-                const now = new Date();
-                document.getElementById('dateOperation').value = now.toISOString().split('T')[0];
-                document.getElementById('heureOperation').value = now.toTimeString().slice(0, 5);
-                
-                console.log('Interface mise à jour avec succès');
+                showSyncStatus('🔄 Création du compte...', 'syncing');
+                await auth.createUserWithEmailAndPassword(email, password);
             } catch (error) {
-                console.error('Erreur mise à jour UI:', error);
+                console.error('Erreur création compte:', error);
+                alert('Erreur de création de compte: ' + error.message);
+            }
+        }
+
+        async function loginAnonymously() {
+            try {
+                showSyncStatus('🔄 Connexion...', 'syncing');
+                await auth.signInAnonymously();
+            } catch (error) {
+                console.error('Erreur connexion anonyme:', error);
+                alert('Erreur de connexion anonyme: ' + error.message);
+            }
+        }
+
+        async function logout() {
+            try {
+                await auth.signOut();
+            } catch (error) {
+                alert('Erreur de déconnexion: ' + error.message);
             }
         }
 
@@ -737,32 +743,10 @@
             console.log('Démarrage de l application...');
             setupEvents();
             initializeApp();
-            
-            // Gestion du scroll pour les onglets sur mobile
             setupTabsScroll();
         });
 
-        // === GESTION DU SCROLL DES ONGLETS ===
-        function setupTabsScroll() {
-            const tabs = document.getElementById('mainTabs');
-            const indicator = document.getElementById('scrollIndicator');
-            
-            if (tabs && indicator) {
-                tabs.addEventListener('scroll', function() {
-                    // Masquer l'indicateur si on est à la fin
-                    const isAtEnd = tabs.scrollLeft + tabs.clientWidth >= tabs.scrollWidth - 10;
-                    indicator.style.display = isAtEnd ? 'none' : 'flex';
-                });
-                
-                // Vérifier l'état initial
-                setTimeout(() => {
-                    const isAtEnd = tabs.scrollLeft + tabs.clientWidth >= tabs.scrollWidth - 10;
-                    indicator.style.display = isAtEnd ? 'none' : 'flex';
-                }, 100);
-            }
-        }
-
-        // === FONCTIONS EXISTANTES (elles restent identiques) ===
+        // === FONCTIONS DE BASE EXISTANTES ===
         function setupEvents() {
             document.querySelectorAll('.tab-button').forEach(btn => {
                 btn.addEventListener('click', function() {
@@ -796,33 +780,164 @@
 
             document.getElementById('mise').addEventListener('input', calcGain);
             document.getElementById('cote').addEventListener('input', calcGain);
-
-            document.getElementById('matchSearch').addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                const q = this.value.toLowerCase();
-                if (q.length < 2) {
-                    document.getElementById('autocompleteResults').classList.remove('active');
-                    return;
-                }
-                searchTimeout = setTimeout(() => {
-                    const results = mockMatches.filter(m => m.home.toLowerCase().includes(q) || m.away.toLowerCase().includes(q));
-                    showResults(results);
-                }, 300);
-            });
-
-            document.getElementById('sport').addEventListener('input', function() {
-                const value = this.value;
-                if (value.length === 1) {
-                    const completed = autoCompleteSport(value);
-                    if (completed !== value) {
-                        this.value = completed;
-                    }
-                }
-            });
         }
 
-        // ... (TOUTES LES AUTRES FONCTIONS RESTENT IDENTIQUES)
-        // [VOS FONCTIONS EXISTANTES SAUVEGARDÉES]
+        function updateUI() {
+            console.log('Mise à jour de l interface...');
+            try {
+                updateSelects();
+                renderBookmakers();
+                renderOperations();
+                renderTipsters();
+                renderStats();
+                
+                const now = new Date();
+                document.getElementById('dateOperation').value = now.toISOString().split('T')[0];
+                document.getElementById('heureOperation').value = now.toTimeString().slice(0, 5);
+                
+                console.log('Interface mise à jour avec succès');
+            } catch (error) {
+                console.error('Erreur mise à jour UI:', error);
+            }
+        }
+
+        function updateSelects() {
+            const bookHtml = bookmakers.map(b => `<option value="${b.nom}">${b.nom}</option>`).join('');
+            document.getElementById('operationBookmaker').innerHTML = '<option value="">Sélectionner un bookmaker</option>' + bookHtml;
+            
+            const tipHtml = tipsters.map(t => `<option value="${t.id}">${t.nom}</option>`).join('');
+            document.getElementById('operationTipster').innerHTML = '<option value="">Aucun / Personnel</option>' + tipHtml;
+        }
+
+        // === FONCTIONS D'AFFICHAGE DES DONNÉES ===
+        function renderBookmakers() {
+            const container = document.getElementById('bookmakerList');
+            if (!container) return;
+            
+            if (bookmakers.length === 0) {
+                container.innerHTML = '<p style="color: #9ca3af; text-align: center; padding: 40px;">Aucun bookmaker. Ajoutez-en un pour commencer !</p>';
+                return;
+            }
+            
+            container.innerHTML = bookmakers.map(b => {
+                const soldeActuel = calcBookmakerBalance(b.id);
+                return `
+                    <div class="bookmaker-item">
+                        <div>
+                            <div class="bookmaker-name">${b.nom}</div>
+                            <div class="bookmaker-balance">Solde initial: ${b.soldeInitial.toFixed(2)}€</div>
+                        </div>
+                        <div class="bookmaker-current">${soldeActuel.toFixed(2)}€</div>
+                        <div>
+                            <button class="btn btn-primary btn-sm" onclick="editBookmaker(${b.id})">✏️</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteBookmaker(${b.id})">🗑️</button>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        function renderOperations() {
+            const tbody = document.getElementById('operationsTableBody');
+            if (!tbody) return;
+            
+            if (operations.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; color: #9ca3af; padding: 40px;">Aucune opération</td></tr>';
+                return;
+            }
+
+            const sortedOperations = [...operations].sort((a, b) => {
+                const dateA = new Date(a.dateOperation + 'T' + (a.heureOperation || '00:00'));
+                const dateB = new Date(b.dateOperation + 'T' + (b.heureOperation || '00:00'));
+                return dateB - dateA;
+            });
+
+            tbody.innerHTML = sortedOperations.map(op => {
+                let resultat = '-';
+                if (op.type === 'Pari') {
+                    if (op.statut === 'Gagné') resultat = '+' + (op.mise * op.cote - op.mise).toFixed(2) + '€';
+                    else if (op.statut === 'Perdu') resultat = '-' + op.mise.toFixed(2) + '€';
+                    else if (op.statut === 'Remboursé') resultat = '0€';
+                    else if (op.statut === 'Cash-out') resultat = '+' + (op.cashoutAmount - op.mise).toFixed(2) + '€';
+                } else if (op.type === 'Frais') {
+                    resultat = '-' + op.montant.toFixed(2) + '€';
+                } else {
+                    resultat = (op.type === 'Dépôt' ? '+' : '-') + op.montant.toFixed(2) + '€';
+                }
+                
+                let badge = 'badge-info';
+                if (op.statut === 'Gagné') badge = 'badge-success';
+                else if (op.statut === 'Perdu') badge = 'badge-danger';
+                else if (op.statut === 'En cours') badge = 'badge-warning';
+                else if (op.statut === 'Cash-out') badge = 'badge-info';
+                else if (op.type !== 'Pari') badge = 'badge-secondary';
+                
+                let tipsterName = '-';
+                if (op.tipster) {
+                    const tip = tipsters.find(t => t.id == op.tipster);
+                    if (tip) tipsterName = tip.nom;
+                }
+
+                const sportIcon = sportIcons[op.sport] || '🏆';
+                const dateHeure = op.dateOperation + (op.heureOperation ? '<br><small>' + op.heureOperation + '</small>' : '');
+                
+                let actionsHtml = `
+                    <div class="action-buttons">
+                        <button class="btn btn-primary btn-sm" onclick="editOperation(${op.id})" title="Modifier">✏️</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteOperation(${op.id})" title="Supprimer">🗑️</button>
+                `;
+                
+                if (op.type === 'Pari' && op.statut === 'En cours') {
+                    actionsHtml += `
+                        <button class="btn btn-success btn-sm" onclick="updateOperationStatus(${op.id}, 'Gagné')" title="Gagné">✓</button>
+                        <button class="btn btn-danger btn-sm" onclick="updateOperationStatus(${op.id}, 'Perdu')" title="Perdu">✗</button>
+                        <button class="btn btn-warning btn-sm" onclick="updateOperationStatus(${op.id}, 'Remboursé')" title="Remboursé">↺</button>
+                        <button class="btn btn-info btn-sm" onclick="showCashoutModal(${op.id})" title="Cash-out">💰</button>
+                    `;
+                }
+                
+                actionsHtml += '</div>';
+                
+                return `
+                    <tr>
+                        <td>${dateHeure}</td>
+                        <td>${op.type}</td>
+                        <td>${op.bookmaker}</td>
+                        <td>${op.sport ? `<span class="sport-icon">${sportIcon}</span> ${op.sport}` : '-'}</td>
+                        <td>${op.match || '-'}</td>
+                        <td>${op.selection || '-'}</td>
+                        <td>${op.typePari || '-'}</td>
+                        <td>${tipsterName}</td>
+                        <td>${op.mise ? op.mise.toFixed(2) + '€' : '-'}</td>
+                        <td>${op.cote || '-'}</td>
+                        <td><span class="badge ${badge}">${op.statut || '-'}</span></td>
+                        <td>${resultat}</td>
+                        <td>${actionsHtml}</td>
+                    </tr>`;
+            }).join('');
+        }
+
+        // === FONCTIONS UTILITAIRES ===
+        function showSyncStatus(message, type) {
+            const statusEl = document.getElementById('syncStatus');
+            statusEl.textContent = message;
+            statusEl.className = `sync-status ${type}`;
+            statusEl.style.display = 'block';
+        }
+
+        function setupTabsScroll() {
+            const tabs = document.getElementById('mainTabs');
+            const indicator = document.getElementById('scrollIndicator');
+            
+            if (tabs && indicator) {
+                tabs.addEventListener('scroll', function() {
+                    const isAtEnd = tabs.scrollLeft + tabs.clientWidth >= tabs.scrollWidth - 10;
+                    indicator.style.display = isAtEnd ? 'none' : 'flex';
+                });
+            }
+        }
+
+        // ... (AJOUTEZ ICI TOUTES VOS AUTRES FONCTIONS EXISTANTES)
+        // Les fonctions comme saveOperation(), calcGain(), etc. doivent être ajoutées ici
 
     </script>
 </body>
