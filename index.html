@@ -97,6 +97,7 @@
         .sync-status.syncing { background: #fef3c7; color: #92400e; }
         .sync-status.synced { background: #dcfce7; color: #166534; }
         .sync-status.error { background: #fee2e2; color: #991b1b; }
+        .offline-mode { background: #fef3c7; color: #92400e; }
     </style>
 </head>
 <body>
@@ -381,22 +382,30 @@
 
     <script>
         // === CONFIGURATION FIREBASE ===
-        // === CONFIGURATION FIREBASE ===
         // REMPLACEZ CES VALEURS PAR VOS PROPRES CLÉS FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyDbtGDuOVE4lYkVtLjZ0AnrpbWVnwcdvZI",
             authDomain: "bankroll-suivi.firebaseapp.com",
-            databaseURL: "https://VOTRE_PROJET.firebaseio.com",
+            databaseURL: "https://bankroll-suivi-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "bankroll-suivi",
             storageBucket: "bankroll-suivi.firebasestorage.app",
             messagingSenderId: "632546496211",
             appId: "1:632546496211:web:25375f3e496c4a43490e26"
         };
 
-        // Initialisation Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const database = firebase.database();
+        // Initialisation Firebase avec gestion d'erreur
+        let auth, database;
+        let isOnline = true;
+        
+        try {
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            database = firebase.database();
+            console.log('Firebase initialisé avec succès');
+        } catch (error) {
+            console.error('Erreur initialisation Firebase:', error);
+            showOfflineMode();
+        }
 
         // Variables globales
         let bookmakers = [];
@@ -425,7 +434,42 @@
             'Golf': '⛳', 'Boxe': '🥊'
         };
 
-        // === GESTION AUTHENTIFICATION ===
+        // === NOUVELLES FONCTIONS POUR MOBILE ===
+        function showOfflineMode() {
+            isOnline = false;
+            console.log('Mode hors ligne activé');
+            
+            const statusEl = document.getElementById('syncStatus');
+            statusEl.textContent = '📱 Mode hors ligne - Données locales';
+            statusEl.className = 'sync-status offline-mode';
+            statusEl.style.display = 'block';
+            
+            loadDataFromLocalStorage();
+            updateUI();
+            
+            document.getElementById('authContainer').style.display = 'none';
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('mainTabs').style.display = 'flex';
+            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+            document.getElementById('enregistrer').style.display = 'block';
+        }
+
+        function setupNetworkDetection() {
+            window.addEventListener('online', function() {
+                isOnline = true;
+                showSyncStatus('✅ Connexion rétablie', 'synced');
+                if (currentUser && auth) {
+                    setTimeout(() => saveDataToFirebase(), 1000);
+                }
+            });
+            
+            window.addEventListener('offline', function() {
+                isOnline = false;
+                showSyncStatus('📱 Mode hors ligne', 'offline-mode');
+            });
+        }
+
+        // === GESTION AUTHENTIFICATION AMÉLIORÉE ===
         function showAuthUI() {
             document.getElementById('authContainer').style.display = 'block';
             document.getElementById('userInfo').style.display = 'none';
@@ -448,11 +492,9 @@
                 userAnonymous.textContent = '';
             }
             
-            // Afficher le premier onglet
             document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
             document.getElementById('enregistrer').style.display = 'block';
             
-            // Charger les données après connexion
             loadUserData();
         }
 
@@ -466,10 +508,26 @@
             }
             
             try {
+                showSyncStatus('🔄 Connexion...', 'syncing');
                 await auth.signInWithEmailAndPassword(email, password);
                 showSyncStatus('✅ Connecté', 'synced');
             } catch (error) {
-                alert('Erreur de connexion: ' + error.message);
+                console.error('Erreur connexion:', error);
+                let errorMessage = 'Erreur de connexion: ';
+                
+                if (error.code === 'auth/network-request-failed') {
+                    errorMessage += 'Problème de connexion réseau. Vérifiez votre internet';
+                    if (!auth) showOfflineMode();
+                } else if (error.code === 'auth/user-not-found') {
+                    errorMessage += 'Aucun compte trouvé avec cet email';
+                } else if (error.code === 'auth/wrong-password') {
+                    errorMessage += 'Mot de passe incorrect';
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorMessage += 'Trop de tentatives. Réessayez plus tard';
+                } else {
+                    errorMessage += error.message;
+                }
+                alert(errorMessage);
             }
         }
 
@@ -488,25 +546,44 @@
             }
             
             try {
+                showSyncStatus('🔄 Création du compte...', 'syncing');
                 await auth.createUserWithEmailAndPassword(email, password);
                 showSyncStatus('✅ Compte créé', 'synced');
             } catch (error) {
-                alert('Erreur de création de compte: ' + error.message);
+                console.error('Erreur création compte:', error);
+                let errorMessage = 'Erreur de création de compte: ';
+                
+                if (error.code === 'auth/network-request-failed') {
+                    errorMessage += 'Problème de connexion réseau. Vérifiez votre internet';
+                } else if (error.code === 'auth/email-already-in-use') {
+                    errorMessage += 'Un compte existe déjà avec cet email';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage += 'Adresse email invalide';
+                } else {
+                    errorMessage += error.message;
+                }
+                alert(errorMessage);
             }
         }
 
         async function loginAnonymously() {
             try {
+                showSyncStatus('🔄 Connexion...', 'syncing');
                 await auth.signInAnonymously();
                 showSyncStatus('✅ Session anonyme démarrée', 'synced');
             } catch (error) {
-                alert('Erreur de connexion anonyme: ' + error.message);
+                console.error('Erreur connexion anonyme:', error);
+                if (error.code === 'auth/network-request-failed') {
+                    alert('Problème de connexion réseau. Vérifiez votre internet');
+                    showOfflineMode();
+                } else {
+                    alert('Erreur de connexion anonyme: ' + error.message);
+                }
             }
         }
 
         async function logout() {
             try {
-                // Sauvegarder les données avant déconnexion
                 await saveDataToFirebase();
                 await auth.signOut();
                 showAuthUI();
@@ -515,14 +592,14 @@
             }
         }
 
-        // === GESTION DES DONNÉES FIREBASE ===
+        // === GESTION DES DONNÉES FIREBASE AMÉLIORÉE ===
         function getUserDataPath() {
             if (!currentUser) return null;
             return `users/${currentUser.uid}`;
         }
 
         async function saveDataToFirebase() {
-            if (!currentUser || isSyncing) return;
+            if (!currentUser || isSyncing || !isOnline || !database) return;
             
             isSyncing = true;
             showSyncStatus('🔄 Synchronisation...', 'syncing');
@@ -539,11 +616,15 @@
                 await database.ref(userDataPath).set(data);
                 showSyncStatus('✅ Données synchronisées', 'synced');
                 
-                // Sauvegarder aussi en localStorage comme backup
                 saveDataToLocalStorage();
             } catch (error) {
                 console.error('Erreur synchronisation:', error);
-                showSyncStatus('❌ Erreur synchronisation', 'error');
+                if (error.code === 'NETWORK_ERROR' || error.message.includes('network')) {
+                    showSyncStatus('📱 Mode hors ligne', 'offline-mode');
+                    isOnline = false;
+                } else {
+                    showSyncStatus('❌ Erreur synchronisation', 'error');
+                }
             } finally {
                 setTimeout(() => {
                     isSyncing = false;
@@ -553,7 +634,11 @@
         }
 
         async function loadUserData() {
-            if (!currentUser) return;
+            if (!currentUser || !database) {
+                loadDataFromLocalStorage();
+                updateUI();
+                return;
+            }
             
             showSyncStatus('🔄 Chargement...', 'syncing');
             
@@ -563,25 +648,25 @@
                 const data = snapshot.val();
                 
                 if (data) {
-                    // Données Firebase trouvées
                     bookmakers = data.bookmakers || [];
                     operations = data.operations || [];
                     tipsters = data.tipsters || [];
                     showSyncStatus('✅ Données chargées', 'synced');
                 } else {
-                    // Aucune donnée Firebase, essayer localStorage
                     loadDataFromLocalStorage();
-                    // Sauvegarder les données locales vers Firebase
                     await saveDataToFirebase();
                 }
                 
                 updateUI();
             } catch (error) {
                 console.error('Erreur chargement:', error);
-                // En cas d'erreur, charger depuis localStorage
                 loadDataFromLocalStorage();
                 updateUI();
                 showSyncStatus('⚠️ Données locales chargées', 'synced');
+                
+                if (error.code === 'NETWORK_ERROR' || error.message.includes('network')) {
+                    showOfflineMode();
+                }
             }
         }
 
@@ -595,7 +680,7 @@
         // === FONCTIONS EXISTANTES MODIFIÉES ===
         function saveData() {
             saveDataToLocalStorage();
-            if (currentUser) {
+            if (currentUser && isOnline) {
                 saveDataToFirebase();
             }
         }
@@ -632,32 +717,40 @@
             renderTipsters();
             renderStats();
             
-            // Définir la date et heure actuelles par défaut
             const now = new Date();
             document.getElementById('dateOperation').value = now.toISOString().split('T')[0];
             document.getElementById('heureOperation').value = now.toTimeString().slice(0, 5);
         }
 
-        // === ÉCOUTEUR D'AUTHENTIFICATION ===
-        auth.onAuthStateChanged((user) => {
-            currentUser = user;
-            if (user) {
-                showAppUI(user);
-            } else {
-                showAuthUI();
-            }
-        });
+        // === ÉCOUTEUR D'AUTHENTIFICATION AMÉLIORÉ ===
+        if (auth) {
+            auth.onAuthStateChanged((user) => {
+                currentUser = user;
+                if (user) {
+                    showAppUI(user);
+                } else {
+                    showAuthUI();
+                }
+            }, (error) => {
+                console.error('Erreur auth state changed:', error);
+                showOfflineMode();
+            });
+        } else {
+            showOfflineMode();
+        }
 
         // === INITIALISATION ===
         window.addEventListener('DOMContentLoaded', function() {
-            // Charger d'abord depuis localStorage
             loadDataFromLocalStorage();
             setupEvents();
+            setupNetworkDetection();
             
-            // L'authentification se fera automatiquement via onAuthStateChanged
+            if (!auth) {
+                showOfflineMode();
+            }
         });
 
-        // === VOS FONCTIONS EXISTANTES ===
+        // === VOS FONCTIONS EXISTANTES (elles restent identiques) ===
         function setupEvents() {
             document.querySelectorAll('.tab-button').forEach(btn => {
                 btn.addEventListener('click', function() {
@@ -828,7 +921,6 @@
             document.getElementById('pariFields').style.display = 'block';
             document.getElementById('depotRetraitFields').style.display = 'none';
             
-            // Réinitialiser date et heure avec valeurs actuelles
             const now = new Date();
             document.getElementById('dateOperation').value = now.toISOString().split('T')[0];
             document.getElementById('heureOperation').value = now.toTimeString().slice(0, 5);
@@ -940,11 +1032,10 @@
                 return;
             }
 
-            // Trier les opérations par date/heure (plus récent en haut)
             const sortedOperations = [...operations].sort((a, b) => {
                 const dateA = new Date(a.dateOperation + 'T' + (a.heureOperation || '00:00'));
                 const dateB = new Date(b.dateOperation + 'T' + (b.heureOperation || '00:00'));
-                return dateB - dateA; // Plus récent en premier
+                return dateB - dateA;
             });
 
             tbody.innerHTML = sortedOperations.map(op => {
@@ -1080,14 +1171,12 @@
             if (!nom || isNaN(solde)) { alert('Remplissez tous les champs'); return; }
             
             if (editingBookmakerId) {
-                // Modification
                 const bookmaker = bookmakers.find(b => b.id === editingBookmakerId);
                 if (bookmaker) {
                     bookmaker.nom = nom;
                     bookmaker.soldeInitial = solde;
                 }
             } else {
-                // Nouveau bookmaker
                 bookmakers.push({id: Date.now(), nom: nom, soldeInitial: solde});
             }
             
@@ -1129,14 +1218,12 @@
             if (!nom) { alert('Saisissez un nom'); return; }
             
             if (editingTipsterId) {
-                // Modification
                 const tipster = tipsters.find(t => t.id === editingTipsterId);
                 if (tipster) {
                     tipster.nom = nom;
                     tipster.description = description;
                 }
             } else {
-                // Nouveau tipster
                 tipsters.push({id: Date.now(), nom: nom, description: description});
             }
             
