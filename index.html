@@ -381,8 +381,7 @@
     </div>
 
     <script>
-        // === CONFIGURATION FIREBASE ===
-        // REMPLACEZ CES VALEURS PAR VOS PROPRES CLÉS FIREBASE
+        // === CONFIGURATION FIREBASE SIMPLIFIÉE ===
         const firebaseConfig = {
             apiKey: "AIzaSyDbtGDuOVE4lYkVtLjZ0AnrpbWVnwcdvZI",
             authDomain: "bankroll-suivi.firebaseapp.com",
@@ -392,20 +391,6 @@
             messagingSenderId: "632546496211",
             appId: "1:632546496211:web:25375f3e496c4a43490e26"
         };
-
-        // Initialisation Firebase avec gestion d'erreur
-        let auth, database;
-        let isOnline = true;
-        
-        try {
-            firebase.initializeApp(firebaseConfig);
-            auth = firebase.auth();
-            database = firebase.database();
-            console.log('Firebase initialisé avec succès');
-        } catch (error) {
-            console.error('Erreur initialisation Firebase:', error);
-            showOfflineMode();
-        }
 
         // Variables globales
         let bookmakers = [];
@@ -418,6 +403,8 @@
         let editingBookmakerId = null;
         let isSyncing = false;
         let currentUser = null;
+        let auth = null;
+        let database = null;
 
         const mockMatches = [
             {sport: 'Football', home: 'Barnsley', away: 'Lincoln', date: '2025-11-15', time: '20:00'},
@@ -434,42 +421,50 @@
             'Golf': '⛳', 'Boxe': '🥊'
         };
 
-        // === NOUVELLES FONCTIONS POUR MOBILE ===
-        function showOfflineMode() {
-            isOnline = false;
-            console.log('Mode hors ligne activé');
-            
-            const statusEl = document.getElementById('syncStatus');
-            statusEl.textContent = '📱 Mode hors ligne - Données locales';
-            statusEl.className = 'sync-status offline-mode';
-            statusEl.style.display = 'block';
-            
+        // === INITIALISATION SIMPLIFIÉE ===
+        function initializeApp() {
+            try {
+                // Initialiser Firebase
+                firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth();
+                database = firebase.database();
+                console.log('Firebase initialisé avec succès');
+                
+                // Configurer l'écouteur d'authentification
+                auth.onAuthStateChanged((user) => {
+                    currentUser = user;
+                    if (user) {
+                        showAppUI(user);
+                    } else {
+                        showAuthUI();
+                    }
+                }, (error) => {
+                    console.error('Erreur auth:', error);
+                    showLocalMode();
+                });
+                
+            } catch (error) {
+                console.error('Erreur initialisation Firebase:', error);
+                showLocalMode();
+            }
+        }
+
+        // === MODE LOCAL SANS FIREBASE ===
+        function showLocalMode() {
+            console.log('Mode local activé');
             loadDataFromLocalStorage();
             updateUI();
             
+            // Afficher directement l'application
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('userInfo').style.display = 'none';
             document.getElementById('mainTabs').style.display = 'flex';
             document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
             document.getElementById('enregistrer').style.display = 'block';
-        }
-
-        function setupNetworkDetection() {
-            window.addEventListener('online', function() {
-                isOnline = true;
-                showSyncStatus('✅ Connexion rétablie', 'synced');
-                if (currentUser && auth) {
-                    setTimeout(() => saveDataToFirebase(), 1000);
-                }
-            });
             
-            window.addEventListener('offline', function() {
-                isOnline = false;
-                showSyncStatus('📱 Mode hors ligne', 'offline-mode');
-            });
+            showSyncStatus('📱 Mode local - Données locales', 'synced');
         }
 
-        // === GESTION AUTHENTIFICATION AMÉLIORÉE ===
         function showAuthUI() {
             document.getElementById('authContainer').style.display = 'block';
             document.getElementById('userInfo').style.display = 'none';
@@ -498,6 +493,7 @@
             loadUserData();
         }
 
+        // === FONCTIONS AUTH SIMPLIFIÉES ===
         async function login() {
             const email = document.getElementById('authEmail').value;
             const password = document.getElementById('authPassword').value;
@@ -510,24 +506,9 @@
             try {
                 showSyncStatus('🔄 Connexion...', 'syncing');
                 await auth.signInWithEmailAndPassword(email, password);
-                showSyncStatus('✅ Connecté', 'synced');
             } catch (error) {
                 console.error('Erreur connexion:', error);
-                let errorMessage = 'Erreur de connexion: ';
-                
-                if (error.code === 'auth/network-request-failed') {
-                    errorMessage += 'Problème de connexion réseau. Vérifiez votre internet';
-                    if (!auth) showOfflineMode();
-                } else if (error.code === 'auth/user-not-found') {
-                    errorMessage += 'Aucun compte trouvé avec cet email';
-                } else if (error.code === 'auth/wrong-password') {
-                    errorMessage += 'Mot de passe incorrect';
-                } else if (error.code === 'auth/too-many-requests') {
-                    errorMessage += 'Trop de tentatives. Réessayez plus tard';
-                } else {
-                    errorMessage += error.message;
-                }
-                alert(errorMessage);
+                alert('Erreur de connexion: ' + error.message);
             }
         }
 
@@ -548,21 +529,9 @@
             try {
                 showSyncStatus('🔄 Création du compte...', 'syncing');
                 await auth.createUserWithEmailAndPassword(email, password);
-                showSyncStatus('✅ Compte créé', 'synced');
             } catch (error) {
                 console.error('Erreur création compte:', error);
-                let errorMessage = 'Erreur de création de compte: ';
-                
-                if (error.code === 'auth/network-request-failed') {
-                    errorMessage += 'Problème de connexion réseau. Vérifiez votre internet';
-                } else if (error.code === 'auth/email-already-in-use') {
-                    errorMessage += 'Un compte existe déjà avec cet email';
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage += 'Adresse email invalide';
-                } else {
-                    errorMessage += error.message;
-                }
-                alert(errorMessage);
+                alert('Erreur de création de compte: ' + error.message);
             }
         }
 
@@ -570,36 +539,32 @@
             try {
                 showSyncStatus('🔄 Connexion...', 'syncing');
                 await auth.signInAnonymously();
-                showSyncStatus('✅ Session anonyme démarrée', 'synced');
             } catch (error) {
                 console.error('Erreur connexion anonyme:', error);
-                if (error.code === 'auth/network-request-failed') {
-                    alert('Problème de connexion réseau. Vérifiez votre internet');
-                    showOfflineMode();
-                } else {
-                    alert('Erreur de connexion anonyme: ' + error.message);
-                }
+                alert('Erreur de connexion anonyme: ' + error.message);
             }
         }
 
         async function logout() {
             try {
-                await saveDataToFirebase();
                 await auth.signOut();
-                showAuthUI();
             } catch (error) {
                 alert('Erreur de déconnexion: ' + error.message);
+            } finally {
+                // Recharger les données locales après déconnexion
+                loadDataFromLocalStorage();
+                updateUI();
             }
         }
 
-        // === GESTION DES DONNÉES FIREBASE AMÉLIORÉE ===
+        // === GESTION DES DONNÉES ===
         function getUserDataPath() {
             if (!currentUser) return null;
             return `users/${currentUser.uid}`;
         }
 
         async function saveDataToFirebase() {
-            if (!currentUser || isSyncing || !isOnline || !database) return;
+            if (!currentUser || isSyncing || !database) return;
             
             isSyncing = true;
             showSyncStatus('🔄 Synchronisation...', 'syncing');
@@ -616,15 +581,9 @@
                 await database.ref(userDataPath).set(data);
                 showSyncStatus('✅ Données synchronisées', 'synced');
                 
-                saveDataToLocalStorage();
             } catch (error) {
                 console.error('Erreur synchronisation:', error);
-                if (error.code === 'NETWORK_ERROR' || error.message.includes('network')) {
-                    showSyncStatus('📱 Mode hors ligne', 'offline-mode');
-                    isOnline = false;
-                } else {
-                    showSyncStatus('❌ Erreur synchronisation', 'error');
-                }
+                showSyncStatus('❌ Erreur synchronisation', 'error');
             } finally {
                 setTimeout(() => {
                     isSyncing = false;
@@ -654,7 +613,6 @@
                     showSyncStatus('✅ Données chargées', 'synced');
                 } else {
                     loadDataFromLocalStorage();
-                    await saveDataToFirebase();
                 }
                 
                 updateUI();
@@ -663,10 +621,6 @@
                 loadDataFromLocalStorage();
                 updateUI();
                 showSyncStatus('⚠️ Données locales chargées', 'synced');
-                
-                if (error.code === 'NETWORK_ERROR' || error.message.includes('network')) {
-                    showOfflineMode();
-                }
             }
         }
 
@@ -677,10 +631,10 @@
             statusEl.style.display = 'block';
         }
 
-        // === FONCTIONS EXISTANTES MODIFIÉES ===
+        // === FONCTIONS DE BASE ===
         function saveData() {
             saveDataToLocalStorage();
-            if (currentUser && isOnline) {
+            if (currentUser && database) {
                 saveDataToFirebase();
             }
         }
@@ -692,22 +646,34 @@
         }
 
         function loadDataFromLocalStorage() {
-            const saved = localStorage.getItem('bookmakers');
-            if (saved) { 
-                bookmakers = JSON.parse(saved); 
-            } else {
+            try {
+                const saved = localStorage.getItem('bookmakers');
+                if (saved) { 
+                    bookmakers = JSON.parse(saved); 
+                } else {
+                    bookmakers = [
+                        {id: 1, nom: 'Loro', soldeInitial: 100},
+                        {id: 2, nom: 'bet365', soldeInitial: 100},
+                        {id: 3, nom: 'Betclic', soldeInitial: 100}
+                    ];
+                }
+                
+                const ops = localStorage.getItem('operations');
+                if (ops) operations = JSON.parse(ops);
+                
+                const tips = localStorage.getItem('tipsters');
+                if (tips) tipsters = JSON.parse(tips);
+            } catch (error) {
+                console.error('Erreur chargement local:', error);
+                // Réinitialiser avec des données par défaut
                 bookmakers = [
                     {id: 1, nom: 'Loro', soldeInitial: 100},
                     {id: 2, nom: 'bet365', soldeInitial: 100},
                     {id: 3, nom: 'Betclic', soldeInitial: 100}
                 ];
+                operations = [];
+                tipsters = [];
             }
-            
-            const ops = localStorage.getItem('operations');
-            if (ops) operations = JSON.parse(ops);
-            
-            const tips = localStorage.getItem('tipsters');
-            if (tips) tipsters = JSON.parse(tips);
         }
 
         function updateUI() {
@@ -722,35 +688,15 @@
             document.getElementById('heureOperation').value = now.toTimeString().slice(0, 5);
         }
 
-        // === ÉCOUTEUR D'AUTHENTIFICATION AMÉLIORÉ ===
-        if (auth) {
-            auth.onAuthStateChanged((user) => {
-                currentUser = user;
-                if (user) {
-                    showAppUI(user);
-                } else {
-                    showAuthUI();
-                }
-            }, (error) => {
-                console.error('Erreur auth state changed:', error);
-                showOfflineMode();
-            });
-        } else {
-            showOfflineMode();
-        }
-
         // === INITIALISATION ===
         window.addEventListener('DOMContentLoaded', function() {
+            console.log('Démarrage de l application...');
             loadDataFromLocalStorage();
             setupEvents();
-            setupNetworkDetection();
-            
-            if (!auth) {
-                showOfflineMode();
-            }
+            initializeApp();
         });
 
-        // === VOS FONCTIONS EXISTANTES (elles restent identiques) ===
+        // === TOUTES LES AUTRES FONCTIONS RESTENT IDENTIQUES ===
         function setupEvents() {
             document.querySelectorAll('.tab-button').forEach(btn => {
                 btn.addEventListener('click', function() {
