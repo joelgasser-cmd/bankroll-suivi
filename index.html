@@ -7,7 +7,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: system-ui, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; }
+        .container { max-width: 1800px; margin: 0 auto; }
         .header { text-align: center; color: white; margin-bottom: 30px; }
         .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
         .tabs { background: white; border-radius: 12px 12px 0 0; display: flex; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -42,15 +42,16 @@
         .autocomplete-item:hover { background: #eff6ff; }
         .match-info { font-weight: 600; color: #1f2937; }
         .match-meta { font-size: 0.875rem; color: #6b7280; margin-top: 4px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { background: #f9fafb; padding: 15px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb; white-space: nowrap; }
-        td { padding: 15px; border-bottom: 1px solid #f3f4f6; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9rem; }
+        th { background: #f9fafb; padding: 12px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb; white-space: nowrap; }
+        td { padding: 12px 8px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
         tr:hover { background: #f9fafb; }
-        .badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.875rem; font-weight: 600; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
         .badge-success { background: #dcfce7; color: #166534; }
         .badge-danger { background: #fee2e2; color: #991b1b; }
         .badge-warning { background: #fed7aa; color: #9a3412; }
         .badge-info { background: #dbeafe; color: #1e40af; }
+        .badge-secondary { background: #f3f4f6; color: #374151; }
         .bookmaker-list { display: grid; gap: 15px; margin-bottom: 20px; }
         .bookmaker-item { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: #f9fafb; border-radius: 8px; border: 2px solid #e5e7eb; }
         .bookmaker-name { font-size: 1.2rem; font-weight: 700; margin-bottom: 5px; }
@@ -63,7 +64,7 @@
         .stat-card.purple { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
         .stat-label { font-size: 0.95rem; opacity: 0.9; margin-bottom: 8px; }
         .stat-value { font-size: 2rem; font-weight: 700; }
-        .action-buttons { display: flex; gap: 5px; flex-wrap: wrap; }
+        .action-buttons { display: flex; gap: 4px; flex-wrap: wrap; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
         .modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
@@ -81,6 +82,7 @@
         .tipster-stat { text-align: center; }
         .tipster-stat-value { font-weight: 700; color: #3b82f6; }
         .tipster-stat-label { color: #6b7280; font-size: 0.85rem; }
+        .sport-icon { width: 20px; height: 20px; display: inline-block; text-align: center; font-weight: bold; margin-right: 5px; }
     </style>
 </head>
 <body>
@@ -121,6 +123,16 @@
                         <select id="operationBookmaker"><option value="">Sélectionner un bookmaker</option></select>
                     </div>
                 </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="dateOperation" value="">
+                    </div>
+                    <div class="form-group">
+                        <label>Heure</label>
+                        <input type="time" id="heureOperation" value="">
+                    </div>
+                </div>
                 <div id="pariFields">
                     <div class="form-group">
                         <label>Tipster (optionnel)</label>
@@ -144,10 +156,6 @@
                             <label>Match</label>
                             <input type="text" id="match" placeholder="PSG vs OM">
                         </div>
-                    </div>
-                    <div class="form-grid">
-                        <div class="form-group"><label>Date du match</label><input type="date" id="dateMatch"></div>
-                        <div class="form-group"><label>Heure</label><input type="time" id="heureMatch"></div>
                     </div>
                     <div class="form-grid">
                         <div class="form-group"><label>Équipe / Sélection</label><input type="text" id="selection" placeholder="PSG"></div>
@@ -188,10 +196,34 @@
         <div class="tab-content" id="suivi-operations">
             <div class="card">
                 <h2 class="card-title">Suivi des opérations</h2>
-                <table>
-                    <thead><tr><th>Date</th><th>Type</th><th>Bookmaker</th><th>Tipster</th><th>Match</th><th>Mise</th><th>Côte</th><th>Statut</th><th>Résultat</th><th>Actions</th></tr></thead>
-                    <tbody id="operationsTableBody"><tr><td colspan="10" style="text-align: center; color: #9ca3af; padding: 40px;">Aucune opération</td></tr></tbody>
-                </table>
+                <div style="margin-bottom: 15px;">
+                    <button class="btn btn-sm btn-secondary" onclick="sortOperations('dateHeure')">Trier par date/heure</button>
+                    <button class="btn btn-sm btn-secondary" onclick="sortOperations('dateCreation')">Trier par date de création</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date/Heure</th>
+                                <th>Type</th>
+                                <th>Bookmaker</th>
+                                <th>Sport</th>
+                                <th>Match</th>
+                                <th>Équipe/Sélection</th>
+                                <th>Type pari</th>
+                                <th>Tipster</th>
+                                <th>Mise</th>
+                                <th>Côte</th>
+                                <th>Statut</th>
+                                <th>Résultat</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="operationsTableBody">
+                            <tr><td colspan="13" style="text-align: center; color: #9ca3af; padding: 40px;">Aucune opération</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
         
@@ -297,6 +329,7 @@
         let editingOperationId = null;
         let editingTipsterId = null;
         let editingBookmakerId = null;
+        let currentSort = 'dateCreation';
 
         const mockMatches = [
             {sport: 'Football', home: 'Barnsley', away: 'Lincoln', date: '2025-11-15', time: '20:00'},
@@ -307,6 +340,19 @@
             {sport: 'Football', home: 'Arsenal', away: 'Chelsea', date: '2025-11-22', time: '16:00'}
         ];
 
+        const sportIcons = {
+            'Football': '⚽',
+            'Basketball': '🏀',
+            'Tennis': '🎾',
+            'Rugby': '🏉',
+            'Hockey': '🏒',
+            'Volley': '🏐',
+            'F1': '🏎️',
+            'Baseball': '⚾',
+            'Golf': '⛳',
+            'Boxe': '🥊'
+        };
+
         window.addEventListener('DOMContentLoaded', function() {
             loadData();
             updateSelects();
@@ -315,6 +361,11 @@
             renderOperations();
             renderTipsters();
             renderStats();
+            
+            // Définir la date et heure actuelles par défaut
+            const now = new Date();
+            document.getElementById('dateOperation').value = now.toISOString().split('T')[0];
+            document.getElementById('heureOperation').value = now.toTimeString().slice(0, 5);
         });
 
         function loadData() {
@@ -471,8 +522,8 @@
         function selectMatch(match) {
             document.getElementById('sport').value = match.sport;
             document.getElementById('match').value = `${match.home} vs ${match.away}`;
-            document.getElementById('dateMatch').value = match.date;
-            document.getElementById('heureMatch').value = match.time;
+            document.getElementById('dateOperation').value = match.date;
+            document.getElementById('heureOperation').value = match.time;
             document.getElementById('selection').value = match.home;
             document.getElementById('matchSearch').value = `${match.home} vs ${match.away}`;
             document.getElementById('autocompleteResults').classList.remove('active');
@@ -492,7 +543,13 @@
                 operations.push(op);
             }
             
-            op.date = new Date().toISOString().split('T')[0];
+            // Gestion de la date et heure
+            const dateOp = document.getElementById('dateOperation').value;
+            const heureOp = document.getElementById('heureOperation').value;
+            op.dateOperation = dateOp || new Date().toISOString().split('T')[0];
+            op.heureOperation = heureOp || new Date().toTimeString().slice(0, 5);
+            op.dateCreation = new Date().toISOString();
+            
             op.type = type;
             op.bookmaker = bookmaker;
             
@@ -502,12 +559,12 @@
                 if (!mise || !cote) { alert('Remplissez mise et côte'); return; }
                 op.sport = document.getElementById('sport').value;
                 op.match = document.getElementById('match').value;
-                op.dateMatch = document.getElementById('dateMatch').value || op.date;
                 op.mise = parseFloat(mise);
                 op.cote = parseFloat(cote);
                 op.statut = document.getElementById('statut').value;
                 op.tipster = document.getElementById('operationTipster').value;
                 op.typePari = document.getElementById('typePari').value;
+                op.selection = document.getElementById('selection').value;
             } else {
                 const montant = document.getElementById('montant').value;
                 if (!montant) { alert('Saisissez un montant'); return; }
@@ -533,8 +590,6 @@
             document.getElementById('matchSearch').value = '';
             document.getElementById('sport').value = '';
             document.getElementById('match').value = '';
-            document.getElementById('dateMatch').value = '';
-            document.getElementById('heureMatch').value = '';
             document.getElementById('selection').value = '';
             document.getElementById('mise').value = '';
             document.getElementById('cote').value = '';
@@ -543,6 +598,11 @@
             document.getElementById('gainPotentiel').textContent = '0.00 €';
             document.getElementById('pariFields').style.display = 'block';
             document.getElementById('depotRetraitFields').style.display = 'none';
+            
+            // Réinitialiser date et heure avec valeurs actuelles
+            const now = new Date();
+            document.getElementById('dateOperation').value = now.toISOString().split('T')[0];
+            document.getElementById('heureOperation').value = now.toTimeString().slice(0, 5);
         }
 
         function cancelEdit() {
@@ -616,18 +676,20 @@
             
             document.getElementById('operationType').value = op.type;
             document.getElementById('operationBookmaker').value = op.bookmaker;
+            document.getElementById('dateOperation').value = op.dateOperation || '';
+            document.getElementById('heureOperation').value = op.heureOperation || '';
             
             if (op.type === 'Pari') {
                 document.getElementById('pariFields').style.display = 'block';
                 document.getElementById('depotRetraitFields').style.display = 'none';
                 document.getElementById('sport').value = op.sport || '';
                 document.getElementById('match').value = op.match || '';
-                document.getElementById('dateMatch').value = op.dateMatch || '';
                 document.getElementById('mise').value = op.mise;
                 document.getElementById('cote').value = op.cote;
                 document.getElementById('statut').value = op.statut;
                 document.getElementById('operationTipster').value = op.tipster || '';
                 document.getElementById('typePari').value = op.typePari || 'Simple';
+                document.getElementById('selection').value = op.selection || '';
                 calcGain();
             } else {
                 document.getElementById('pariFields').style.display = 'none';
@@ -636,13 +698,30 @@
             }
         }
 
+        function sortOperations(sortType) {
+            currentSort = sortType;
+            renderOperations();
+        }
+
         function renderOperations() {
             const tbody = document.getElementById('operationsTableBody');
             if (operations.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #9ca3af; padding: 40px;">Aucune opération</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; color: #9ca3af; padding: 40px;">Aucune opération</td></tr>';
                 return;
             }
-            tbody.innerHTML = operations.map(op => {
+
+            // Trier les opérations
+            const sortedOperations = [...operations].sort((a, b) => {
+                if (currentSort === 'dateHeure') {
+                    const dateA = new Date(a.dateOperation + 'T' + (a.heureOperation || '00:00'));
+                    const dateB = new Date(b.dateOperation + 'T' + (b.heureOperation || '00:00'));
+                    return dateB - dateA; // Plus récent en premier
+                } else {
+                    return new Date(b.dateCreation) - new Date(a.dateCreation);
+                }
+            });
+
+            tbody.innerHTML = sortedOperations.map(op => {
                 let resultat = '-';
                 if (op.type === 'Pari') {
                     if (op.statut === 'Gagné') resultat = '+' + (op.mise * op.cote - op.mise).toFixed(2) + '€';
@@ -660,33 +739,50 @@
                 else if (op.statut === 'Perdu') badge = 'badge-danger';
                 else if (op.statut === 'En cours') badge = 'badge-warning';
                 else if (op.statut === 'Cash-out') badge = 'badge-info';
+                else if (op.type !== 'Pari') badge = 'badge-secondary';
                 
                 let tipsterName = '-';
                 if (op.tipster) {
                     const tip = tipsters.find(t => t.id == op.tipster);
                     if (tip) tipsterName = tip.nom;
                 }
+
+                const sportIcon = sportIcons[op.sport] || '🏆';
+                const dateHeure = op.dateOperation + (op.heureOperation ? '<br><small>' + op.heureOperation + '</small>' : '');
                 
                 let actionsHtml = `
                     <div class="action-buttons">
-                        <button class="btn btn-primary btn-sm" onclick="editOperation(${op.id})">✏️</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteOperation(${op.id})">🗑️</button>
+                        <button class="btn btn-primary btn-sm" onclick="editOperation(${op.id})" title="Modifier">✏️</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteOperation(${op.id})" title="Supprimer">🗑️</button>
                 `;
                 
                 if (op.type === 'Pari' && op.statut === 'En cours') {
                     actionsHtml += `
-                        <button class="btn btn-success btn-sm" onclick="updateOperationStatus(${op.id}, 'Gagné')">✓</button>
-                        <button class="btn btn-danger btn-sm" onclick="updateOperationStatus(${op.id}, 'Perdu')">✗</button>
-                        <button class="btn btn-warning btn-sm" onclick="updateOperationStatus(${op.id}, 'Remboursé')">↺</button>
-                        <button class="btn btn-info btn-sm" onclick="showCashoutModal(${op.id})">💰</button>
+                        <button class="btn btn-success btn-sm" onclick="updateOperationStatus(${op.id}, 'Gagné')" title="Gagné">✓</button>
+                        <button class="btn btn-danger btn-sm" onclick="updateOperationStatus(${op.id}, 'Perdu')" title="Perdu">✗</button>
+                        <button class="btn btn-warning btn-sm" onclick="updateOperationStatus(${op.id}, 'Remboursé')" title="Remboursé">↺</button>
+                        <button class="btn btn-info btn-sm" onclick="showCashoutModal(${op.id})" title="Cash-out">💰</button>
                     `;
                 }
                 
                 actionsHtml += '</div>';
                 
-                const displayDate = op.type === 'Pari' ? (op.dateMatch || op.date) : op.date;
-                
-                return `<tr><td>${displayDate}</td><td>${op.type}</td><td>${op.bookmaker}</td><td>${tipsterName}</td><td>${op.match || '-'}</td><td>${op.mise ? op.mise.toFixed(2) + '€' : '-'}</td><td>${op.cote || '-'}</td><td><span class="badge ${badge}">${op.statut || '-'}</span></td><td>${resultat}</td><td>${actionsHtml}</td></tr>`;
+                return `
+                    <tr>
+                        <td>${dateHeure}</td>
+                        <td>${op.type}</td>
+                        <td>${op.bookmaker}</td>
+                        <td>${op.sport ? `<span class="sport-icon">${sportIcon}</span> ${op.sport}` : '-'}</td>
+                        <td>${op.match || '-'}</td>
+                        <td>${op.selection || '-'}</td>
+                        <td>${op.typePari || '-'}</td>
+                        <td>${tipsterName}</td>
+                        <td>${op.mise ? op.mise.toFixed(2) + '€' : '-'}</td>
+                        <td>${op.cote || '-'}</td>
+                        <td><span class="badge ${badge}">${op.statut || '-'}</span></td>
+                        <td>${resultat}</td>
+                        <td>${actionsHtml}</td>
+                    </tr>`;
             }).join('');
         }
 
@@ -849,6 +945,10 @@
 
         function renderTipsters() {
             const container = document.getElementById('tipsterList');
+            if (tipsters.length === 0) {
+                container.innerHTML = '<p style="color: #9ca3af; text-align: center; padding: 40px;">Aucun tipster. Ajoutez-en un pour commencer !</p>';
+                return;
+            }
             container.innerHTML = tipsters.map(t => {
                 const stats = calcTipsterStats(t.id);
                 return `
