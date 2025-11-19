@@ -11,7 +11,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
 <style>
-/* (J'ai conservé ton CSS, j'ai juste retiré certains commentaires pour compacité) */
+/* Consolidated CSS (from your original files, kept visual identical) */
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:system-ui,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:20px}
 .container{max-width:1200px;margin:0 auto}
@@ -49,6 +49,8 @@ table{width:100%;border-collapse:collapse;margin-top:12px}
 th,td{padding:8px;text-align:left;border-bottom:1px solid #f3f4f6;font-size:0.9rem}
 .action-buttons{display:flex;gap:6px}
 .small{font-size:0.85rem}
+.modal{display:none;position:fixed;left:0;top:0;right:0;bottom:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:9999}
+.modal.active{display:flex}
 </style>
 </head>
 <body>
@@ -262,7 +264,7 @@ th,td{padding:8px;text-align:left;border-bottom:1px solid #f3f4f6;font-size:0.9r
 </div>
 
 <!-- Modal Cashout -->
-<div id="cashoutModal" class="modal" style="display:none;position:fixed;left:0;top:0;right:0;bottom:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:9999">
+<div id="cashoutModal" class="modal">
   <div style="background:white;padding:18px;border-radius:10px;max-width:420px;margin:auto">
     <h4>Cash-out</h4>
     <div class="form-group"><label>Montant (€)</label><input id="cashoutAmount" type="number" step="0.01" value="0"></div>
@@ -279,7 +281,7 @@ const firebaseConfig = {
   authDomain: "bankroll-suivi.firebaseapp.com",
   databaseURL: "https://bankroll-suivi-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "bankroll-suivi",
-  storageBucket: "bankroll-suivi.appspot.com", // CORRECTION
+  storageBucket: "bankroll-suivi.appspot.com",
   messagingSenderId: "632546496211",
   appId: "1:632546496211:web:25375f3e496c4a43490e26"
 };
@@ -300,6 +302,7 @@ let auth = null;
 let database = null;
 let isMobile = /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
 let currentCashoutId = null;
+let isSyncing = false;
 
 /* Mock matches for autocomplete */
 const mockMatches = [
@@ -416,6 +419,10 @@ function showAppUI(user) {
 /* --------------------
    LOCAL STORAGE
    -------------------- */
+def_save_data_local = None
+def_save_data_to_firebase = None
+def_load_user_data = None
+
 function loadDataFromLocalStorage() {
   try {
     bookmakers = JSON.parse(localStorage.getItem('bookmakers')||'[]') || [];
@@ -610,7 +617,6 @@ function renderOperations() {
 
 function renderStats() {
   const grid = document.getElementById('statsGrid'); grid.innerHTML = '';
-  // calc totals
   const totalMise = operations.reduce((s,o)=>s + Number(o.mise||0),0);
   const totalGain = operations.reduce((s,o)=> {
     if (o.statut==='Gagné' && o.cote) return s + ((Number(o.mise||0)*(Number(o.cote||1))) - Number(o.mise||0));
@@ -659,7 +665,6 @@ function resetOperationForm() {
   document.getElementById('cote').value = 1;
   document.getElementById('statut').value='En cours';
   calcGain();
-  // show pari fields
   document.getElementById('pariFields').style.display='block';
   document.getElementById('depotRetraitFields').style.display='none';
 }
@@ -687,10 +692,8 @@ function saveOperation() {
     } else {
       operations.push(op);
     }
-    // update bookmaker balance if deposit/withdrawal or result
     recalcBookmakerBalances();
   } else {
-    // Dépôt / Retrait / Frais
     const montant = Number(document.getElementById('montant').value||0);
     if (!montant) { alert('Montant requis'); return; }
     const op = { id: editingOperationId||('op-'+Date.now()), type, bookmaker, date, time, montant };
@@ -729,7 +732,6 @@ function editOperation(id) {
     document.getElementById('depotRetraitFields').style.display='block';
     document.getElementById('montant').value = op.montant||0;
   }
-  // switch to enregistrer tab
   document.querySelector('[data-tab="enregistrer"]').click();
 }
 
@@ -774,7 +776,6 @@ function editBookmaker(id) {
 function deleteBookmaker(id) {
   if (!confirm('Supprimer bookmaker et toutes ses opérations associées ?')) return;
   bookmakers = bookmakers.filter(b=>b.id!==id);
-  // remove operations associated
   operations = operations.filter(o=>o.bookmaker!==id);
   saveData(); updateUI();
 }
@@ -813,7 +814,6 @@ function deleteTipster(id) {
    BALANCE / HELPERS
    -------------------- */
 function recalcBookmakerBalances() {
-  // set soldeActuel to soldeInitial then apply deposits/withdrawals and effects of bets judged
   bookmakers.forEach(b => b.soldeActuel = Number(b.soldeInitial||0));
   operations.forEach(op => {
     if (!op.bookmaker) return;
@@ -825,11 +825,10 @@ function recalcBookmakerBalances() {
     else if (op.type === 'Pari') {
       if (op.statut === 'Gagné') {
         const win = (Number(op.mise||0) * Number(op.cote||1)) - Number(op.mise||0);
-        b.soldeActuel += Number(op.mise||0) + win; // return stake + profit
-        // But to avoid double counting if stakes already assumed removed, we assume stake not removed elsewhere
+        b.soldeActuel += Number(op.mise||0) + win;
       } else if (op.statut === 'Perdu') {
         b.soldeActuel -= Number(op.mise||0);
-      } // En cours -> no change
+      }
     }
   });
   saveDataToLocalStorage();
@@ -841,18 +840,16 @@ function recalcBookmakerBalances() {
 function openCashout(id) {
   currentCashoutId = id;
   document.getElementById('cashoutAmount').value = '';
-  document.getElementById('cashoutModal').style.display = 'flex';
+  document.getElementById('cashoutModal').classList.add('active');
 }
 
-function closeCashoutModal() { currentCashoutId = null; document.getElementById('cashoutModal').style.display='none'; }
+function closeCashoutModal() { currentCashoutId = null; document.getElementById('cashoutModal').classList.remove('active'); }
 
 function confirmCashout() {
   const amt = Number(document.getElementById('cashoutAmount').value||0);
   if (!amt || !currentCashoutId) { alert('Montant requis'); return; }
   const op = operations.find(o=>o.id===currentCashoutId);
   if (!op) { alert('Opération introuvable'); closeCashoutModal(); return; }
-  // apply cashout as a special deposit to bookmaker (or adjust op)
-  // We'll create a "Cashout" operation of type Dépôt to bookmaker
   operations.push({id:'op-'+Date.now(), type:'Dépôt', bookmaker:op.bookmaker, date:new Date().toISOString().split('T')[0], time:new Date().toTimeString().slice(0,5), montant:amt});
   recalcBookmakerBalances(); saveData(); updateUI();
   closeCashoutModal();
@@ -928,7 +925,6 @@ function setupEvents() {
       const t = this.dataset.tab;
       const tabEl = document.getElementById(t);
       if (tabEl) tabEl.classList.add('active');
-      // render when needed
       if (t === 'statistiques') renderStats();
       if (t === 'bookmakers') renderBookmakers();
       if (t === 'suivi-operations') renderOperations();
@@ -948,7 +944,6 @@ function setupEvents() {
     clearTimeout(searchTimeout); searchTimeout = setTimeout(searchMatches, 250);
   });
 
-  // hide autocomplete when clicking outside
   document.addEventListener('click', (e)=> {
     const ar = document.getElementById('autocompleteResults');
     if (!ar) return;
@@ -965,7 +960,6 @@ function updateUI() {
   renderTipsters();
   renderOperations();
   renderStats();
-  // set default date/time
   const now = new Date();
   document.getElementById('dateOperation').value = document.getElementById('dateOperation').value || now.toISOString().split('T')[0];
   document.getElementById('heureOperation').value = document.getElementById('heureOperation').value || now.toTimeString().slice(0,5);
@@ -979,10 +973,8 @@ window.addEventListener('DOMContentLoaded', function(){
   setupEvents();
   loadDataFromLocalStorage();
   initializeApp();
-  // if Firebase fails, showLocalMode already called
   updateUI();
 });
-
 </script>
 </body>
 </html>
