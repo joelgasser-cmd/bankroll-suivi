@@ -158,7 +158,7 @@
         </div>
         
         <!-- Onglet Enregistrer -->
-        <div class="tab-content active" id="enregistrer" style="display: none;">
+        <div class="tab-content active" id="enregistrer" style="display:none;">
             <div class="card">
                 <div id="editModeBanner" class="edit-mode-banner" style="display: none;">
                     📝 Mode modification activé - Les données actuelles sont conservées
@@ -251,7 +251,7 @@
         </div>
         
         <!-- Onglet Suivi des opérations -->
-        <div class="tab-content" id="suivi-operations" style="display: none;">
+        <div class="tab-content" id="suivi-operations" style="display:none;">
             <div class="card">
                 <h2 class="card-title">Suivi des opérations</h2>
                 <div style="overflow-x: auto;">
@@ -282,7 +282,7 @@
         </div>
         
         <!-- Onglet Tipsters -->
-        <div class="tab-content" id="tipsters" style="display: none;">
+        <div class="tab-content" id="tipsters" style="display:none;">
             <div class="card">
                 <h2 class="card-title">Tipsters</h2>
                 <p class="card-description">Gérez vos tipsters et suivez leurs performances</p>
@@ -306,7 +306,7 @@
         </div>
         
         <!-- Onglet Bookmakers -->
-        <div class="tab-content" id="bookmakers" style="display: none;">
+        <div class="tab-content" id="bookmakers" style="display:none;">
             <div class="card">
                 <h2 class="card-title">Bookmakers</h2>
                 <div class="bookmaker-list" id="bookmakerList"></div>
@@ -324,7 +324,7 @@
         </div>
         
         <!-- Onglet Statistiques -->
-        <div class="tab-content" id="statistiques" style="display: none;">
+        <div class="tab-content" id="statistiques" style="display:none;">
             <div class="card">
                 <h2 class="card-title">Statistiques</h2>
                 <div class="stats-grid" id="statsGrid"></div>
@@ -332,7 +332,7 @@
         </div>
         
         <!-- Onglet Outils -->
-        <div class="tab-content" id="outils" style="display: none;">
+        <div class="tab-content" id="outils" style="display:none;">
             <div class="card">
                 <h2 class="card-title">🛠️ Outils</h2>
                 <p class="card-description">Section en construction - Bientôt de nouvelles fonctionnalités !</p>
@@ -345,7 +345,7 @@
         </div>
         
         <!-- Onglet Réglages -->
-        <div class="tab-content" id="reglages" style="display: none;">
+        <div class="tab-content" id="reglages" style="display:none;">
             <div class="card">
                 <h2 class="card-title">⚙️ Réglages</h2>
                 <p class="card-description">Gérez vos données et paramètres</p>
@@ -387,7 +387,7 @@
             authDomain: "bankroll-suivi.firebaseapp.com",
             databaseURL: "https://bankroll-suivi-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "bankroll-suivi",
-            storageBucket: "bankroll-suivi.appspot.com",
+            storageBucket: "bankroll-suivi.firebasestorage.app",
             messagingSenderId: "632546496211",
             appId: "1:632546496211:web:25375f3e496c4a43490e26"
         };
@@ -472,6 +472,20 @@
         }
 
         function showAppUI(user) {
+    try{ document.getElementById('authContainer') && (document.getElementById('authContainer').style.display='none'); }catch(e){}
+    try{ document.getElementById('appContent') && (document.getElementById('appContent').style.display='block'); }catch(e){}
+    try{
+        var firstBtn = document.querySelector('.tab-button');
+        if(firstBtn){
+            document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
+            firstBtn.classList.add('active');
+            var t = firstBtn.dataset.tab;
+            document.querySelectorAll('.tab-content').forEach(c=>{ c.classList.remove('active'); c.style.display='none'; });
+            var cont = document.getElementById(t);
+            if(cont){ cont.classList.add('active'); cont.style.display='block'; }
+        }
+    }catch(e){}
+    
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('userInfo').style.display = 'block';
             document.getElementById('mainTabs').style.display = 'flex';
@@ -689,18 +703,64 @@
         }
 
         // === INITIALISATION ===
-        
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('Démarrage de l application...');
+            loadDataFromLocalStorage();
+            setupEvents();
+            initializeApp();
+        });
 
         // === TOUTES LES AUTRES FONCTIONS RESTENT IDENTIQUES ===
-        function setupEvents() {
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    document.querySelectorAll('.tab-button, .tab-content').forEach(el => {
-                        el.classList.remove('active');
-                        if (el.classList.contains('tab-content')) {
-                            el.style.display = 'none';
-                        }
-                    });
+        
+function setupEvents(){
+    // Tabs click behavior + render calls
+    document.querySelectorAll('.tab-button').forEach(btn=>{
+        btn.addEventListener('click', function(e){
+            e.preventDefault();
+            document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c=>{ c.classList.remove('active'); c.style.display='none'; });
+            this.classList.add('active');
+            const tab = this.dataset.tab;
+            const content = document.getElementById(tab);
+            if(content){ content.classList.add('active'); content.style.display='block'; }
+            // renderers
+            try{ if(tab==='statistiques' && typeof renderStats==='function') renderStats(); }catch(e){}
+            try{ if(tab==='bookmakers' && typeof renderBookmakers==='function') renderBookmakers(); }catch(e){}
+            try{ if(tab==='suivi-operations' && typeof renderOperations==='function') renderOperations(); }catch(e){}
+            try{ if(tab==='tipsters' && typeof renderTipsters==='function') renderTipsters(); }catch(e){}
+        });
+    });
+
+    // operation type
+    const opType = document.getElementById('operationType');
+    if(opType) opType.addEventListener('change', function(){
+        if(this.value==='Pari'){ document.getElementById('pariFields').style.display='block'; document.getElementById('depotRetraitFields').style.display='none'; }
+        else{ document.getElementById('pariFields').style.display='none'; document.getElementById('depotRetraitFields').style.display='block'; }
+    });
+
+    // calc gain inputs
+    const mise = document.getElementById('mise');
+    const cote = document.getElementById('cote');
+    if(mise) mise.addEventListener('input', calcGain);
+    if(cote) cote.addEventListener('input', calcGain);
+
+    // match search debounce
+    const matchSearch = document.getElementById('matchSearch');
+    if(matchSearch){
+        matchSearch.addEventListener('input', function(){
+            clearTimeout(window._matchSearchTimeout);
+            window._matchSearchTimeout = setTimeout(function(){ if(typeof searchMatches==='function') searchMatches(); }, 300);
+        });
+    }
+
+    // tabs scroll indicator
+    const tabs = document.querySelector('.tabs');
+    const indicator = document.getElementById('scrollIndicator');
+    function updateIndicator(){ if(tabs && indicator){ if(tabs.scrollWidth>tabs.clientWidth) indicator.style.display='flex'; else indicator.style.display='none'; } }
+    try{ updateIndicator(); window.addEventListener('resize', updateIndicator); if(tabs) tabs.addEventListener('scroll', updateIndicator); }catch(e){}
+}
+
+});
                     this.classList.add('active');
                     const tabContent = document.getElementById(this.dataset.tab);
                     tabContent.classList.add('active');
@@ -1368,654 +1428,5 @@
             event.target.value = '';
         }
     </script>
-<script>
-
-// --- Re-injected functions from backups ---
-
-function selectMatch(match) {
-            document.getElementById('sport').value = match.sport;
-            document.getElementById('match').value = `${match.home} vs ${match.away}`;
-            document.getElementById('dateOperation').value = match.date;
-            document.getElementById('heureOperation').value = match.time;
-            document.getElementById('selection').value = match.home;
-            document.getElementById('matchSearch').value = `${match.home} vs ${match.away}`;
-            document.getElementById('autocompleteResults').classList.remove('active');
-        }
-
-function resetForm() {
-            editingOperationId = null;
-            document.getElementById('editModeBanner').style.display = 'none';
-            document.getElementById('cancelEditBtn').style.display = 'none';
-            document.getElementById('operationType').value = 'Pari';
-            document.getElementById('operationBookmaker').selectedIndex = 0;
-            document.getElementById('operationTipster').selectedIndex = 0;
-            document.getElementById('matchSearch').value = '';
-            document.getElementById('sport').value = '';
-            document.getElementById('match').value = '';
-            document.getElementById('selection').value = '';
-            document.getElementById('mise').value = '';
-            document.getElementById('cote').value = '';
-            document.getElementById('montant').value = '';
-            document.getElementById('typePari').value = 'Simple';
-            document.getElementById('gainPotentiel').textContent = '0.00 €';
-            document.getElementById('pariFields').style.display = 'block';
-            document.getElementById('depotRetraitFields').style.display = 'none';
-            
-            // Réinitialiser date et heure avec valeurs actuelles
-            const now = new Date();
-            document.getElementById('dateOperation').value = now.toISOString().split('T')[0];
-            document.getElementById('heureOperation').value = now.toTimeString().slice(0, 5);
-        }
-
-function calcGain() {
-            const mise = parseFloat(document.getElementById('mise').value) || 0;
-            const cote = parseFloat(document.getElementById('cote').value) || 0;
-            const gainNet = (mise * cote) - mise;
-            document.getElementById('gainPotentiel').textContent = gainNet.toFixed(2) + ' €';
-        }
-
-function editOperation(id) {
-            const op = operations.find(o => o.id === id);
-            if (!op) return;
-            
-            editingOperationId = id;
-            document.getElementById('editModeBanner').style.display = 'block';
-            document.getElementById('cancelEditBtn').style.display = 'block';
-            
-            document.querySelectorAll('.tab-button, .tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelector('[data-tab="enregistrer"]').classList.add('active');
-            document.getElementById('enregistrer').classList.add('active');
-            
-            document.getElementById('operationType').value = op.type;
-            document.getElementById('operationBookmaker').value = op.bookmaker;
-            document.getElementById('dateOperation').value = op.dateOperation || '';
-            document.getElementById('heureOperation').value = op.heureOperation || '';
-            
-            if (op.type === 'Pari') {
-                document.getElementById('pariFields').style.display = 'block';
-                document.getElementById('depotRetraitFields').style.display = 'none';
-                document.getElementById('sport').value = op.sport || '';
-                document.getElementById('match').value = op.match || '';
-                document.getElementById('mise').value = op.mise;
-                document.getElementById('cote').value = op.cote;
-                document.getElementById('statut').value = op.statut;
-                document.getElementById('operationTipster').value = op.tipster || '';
-                document.getElementById('typePari').value = op.typePari || 'Simple';
-                document.getElementById('selection').value = op.selection || '';
-                calcGain();
-            } else {
-                document.getElementById('pariFields').style.display = 'none';
-                document.getElementById('depotRetraitFields').style.display = 'block';
-                document.getElementById('montant').value = op.montant;
-            }
-        }
-
-function deleteBookmaker(id) {
-            if (confirm('Supprimer ce bookmaker ?')) {
-                bookmakers = bookmakers.filter(b => b.id !== id);
-                saveData();
-                updateSelects();
-                renderBookmakers();
-            }
-        }
-
-function calcBookmakerBalance(bookId) {
-            const book = bookmakers.find(b => b.id === bookId);
-            if (!book) return 0;
-            let balance = book.soldeInitial;
-            operations.filter(op => op.bookmaker === book.nom).forEach(op => {
-                if (op.type === 'Dépôt') balance += op.montant;
-                else if (op.type === 'Retrait') balance -= op.montant;
-                else if (op.type === 'Frais') balance -= op.montant;
-                else if (op.type === 'Pari') {
-                    if (op.statut === 'Gagné') balance += (op.mise * op.cote - op.mise);
-                    else if (op.statut === 'Perdu') balance -= op.mise;
-                    else if (op.statut === 'Cash-out') balance += (op.cashoutAmount - op.mise);
-                    else if (op.statut === 'En cours') balance -= op.mise;
-                }
-            });
-            return balance;
-        }
-
-function saveTipster() {
-            const nom = document.getElementById('tipsterNom').value;
-            const description = document.getElementById('tipsterDescription').value;
-            if (!nom) { alert('Saisissez un nom'); return; }
-            
-            if (editingTipsterId) {
-                // Modification
-                const tipster = tipsters.find(t => t.id === editingTipsterId);
-                if (tipster) {
-                    tipster.nom = nom;
-                    tipster.description = description;
-                }
-            } else {
-                // Nouveau tipster
-                tipsters.push({id: Date.now(), nom: nom, description: description});
-            }
-            
-            saveData();
-            updateSelects();
-            renderTipsters();
-            cancelTipsterForm();
-            alert('✅ Tipster ' + (editingTipsterId ? 'modifié' : 'ajouté') + ' !');
-        }
-
-function renderBookmakers() {
-            const container = document.getElementById('bookmakerList');
-            container.innerHTML = bookmakers.map(b => {
-                const soldeActuel = calcBookmakerBalance(b.id);
-                return `
-                    <div class="bookmaker-item">
-                        <div>
-                            <div class="bookmaker-name">${b.nom}</div>
-                            <div class="bookmaker-balance">Solde initial: ${b.soldeInitial.toFixed(2)}€</div>
-                        </div>
-                        <div class="bookmaker-current">${soldeActuel.toFixed(2)}€</div>
-                        <div>
-                            <button class="btn btn-primary btn-sm" onclick="editBookmaker(${b.id})">✏️</button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteBookmaker(${b.id})">🗑️</button>
-                        </div>
-                    </div>`;
-            }).join('');
-        }
-
-function showResults(results) {
-            const container = document.getElementById('autocompleteResults');
-            if (results.length === 0) {
-                container.innerHTML = '<div style="padding: 12px 15px; color: #9ca3af;">Aucun résultat</div>';
-            } else {
-                container.innerHTML = results.map(m => `<div class="autocomplete-item" onclick='selectMatch(${JSON.stringify(m)})'><div class="match-info">⚽ ${m.home} vs ${m.away}</div><div class="match-meta">${m.date} à ${m.time}</div></div>`).join('');
-            }
-            container.classList.add('active');
-        }
-
-function renderStats() {
-            const paris = operations.filter(op => op.type === 'Pari');
-            const gagnes = paris.filter(p => p.statut === 'Gagné').length;
-            const perdus = paris.filter(p => p.statut === 'Perdu').length;
-            const totalMises = paris.reduce((sum, p) => sum + (p.mise || 0), 0);
-            let profit = 0;
-            operations.forEach(op => {
-                if (op.type === 'Pari') {
-                    if (op.statut === 'Gagné') profit += (op.mise * op.cote - op.mise);
-                    else if (op.statut === 'Perdu') profit -= op.mise;
-                    else if (op.statut === 'Cash-out') profit += (op.cashoutAmount - op.mise);
-                } else if (op.type === 'Frais') {
-                    profit -= op.montant;
-                }
-            });
-            const bankroll = bookmakers.reduce((sum, b) => sum + calcBookmakerBalance(b.id), 0);
-            const roi = totalMises > 0 ? ((profit / totalMises) * 100).toFixed(2) : 0;
-            const tauxReussite = (gagnes + perdus) > 0 ? ((gagnes / (gagnes + perdus)) * 100).toFixed(2) : 0;
-            document.getElementById('statsGrid').innerHTML = `
-                <div class="stat-card"><div class="stat-label">Bankroll Totale</div><div class="stat-value">${bankroll.toFixed(2)}€</div></div>
-                <div class="stat-card ${profit >= 0 ? 'green' : 'red'}"><div class="stat-label">Profit/Perte</div><div class="stat-value">${profit >= 0 ? '+' : ''}${profit.toFixed(2)}€</div></div>
-                <div class="stat-card"><div class="stat-label">ROI</div><div class="stat-value">${roi}%</div></div>
-                <div class="stat-card"><div class="stat-label">Taux de réussite</div><div class="stat-value">${tauxReussite}%</div></div>
-                <div class="stat-card green"><div class="stat-label">Paris gagnés</div><div class="stat-value">${gagnes}</div></div>
-                <div class="stat-card red"><div class="stat-label">Paris perdus</div><div class="stat-value">${perdus}</div></div>
-            `;
-        }
-
-function renderTipsters() {
-            const container = document.getElementById('tipsterList');
-            if (tipsters.length === 0) {
-                container.innerHTML = '<p style="color: #9ca3af; text-align: center; padding: 40px;">Aucun tipster. Ajoutez-en un pour commencer !</p>';
-                return;
-            }
-            container.innerHTML = tipsters.map(t => {
-                const stats = calcTipsterStats(t.id);
-                return `
-                    <div class="tipster-card" onclick="showTipsterDetails(${t.id})">
-                        <div class="tipster-header">
-                            <div>
-                                <div class="tipster-name">${t.nom}</div>
-                                ${t.description ? `<div style="color: #6b7280; font-size: 0.9rem;">${t.description}</div>` : ''}
-                            </div>
-                            <div>
-                                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); editTipster(${t.id})">✏️</button>
-                                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteTipster(${t.id})">🗑️</button>
-                            </div>
-                        </div>
-                        <div class="tipster-stats">
-                            <div class="tipster-stat">
-                                <div class="tipster-stat-value">${stats.totalParis}</div>
-                                <div class="tipster-stat-label">Paris</div>
-                            </div>
-                            <div class="tipster-stat">
-                                <div class="tipster-stat-value" style="color: ${stats.profit >= 0 ? '#22c55e' : '#ef4444'}">${stats.profit >= 0 ? '+' : ''}${stats.profit.toFixed(2)}€</div>
-                                <div class="tipster-stat-label">Profit</div>
-                            </div>
-                            <div class="tipster-stat">
-                                <div class="tipster-stat-value">${stats.winRate}%</div>
-                                <div class="tipster-stat-label">Taux réussite</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-function saveOperation() {
-            const type = document.getElementById('operationType').value;
-            const bookmaker = document.getElementById('operationBookmaker').value;
-            if (!bookmaker) { alert('Veuillez sélectionner un bookmaker'); return; }
-            
-            let op;
-            if (editingOperationId) {
-                op = operations.find(o => o.id === editingOperationId);
-                if (!op) return;
-            } else {
-                op = { id: Date.now() };
-                operations.push(op);
-            }
-            
-            // Gestion de la date et heure
-            const dateOp = document.getElementById('dateOperation').value;
-            const heureOp = document.getElementById('heureOperation').value;
-            op.dateOperation = dateOp || new Date().toISOString().split('T')[0];
-            op.heureOperation = heureOp || new Date().toTimeString().slice(0, 5);
-            op.dateCreation = new Date().toISOString();
-            
-            op.type = type;
-            op.bookmaker = bookmaker;
-            
-            if (type === 'Pari') {
-                const mise = document.getElementById('mise').value;
-                const cote = document.getElementById('cote').value;
-                if (!mise || !cote) { alert('Remplissez mise et côte'); return; }
-                op.sport = document.getElementById('sport').value;
-                op.match = document.getElementById('match').value;
-                op.mise = parseFloat(mise);
-                op.cote = parseFloat(cote);
-                op.statut = document.getElementById('statut').value;
-                op.tipster = document.getElementById('operationTipster').value;
-                op.typePari = document.getElementById('typePari').value;
-                op.selection = document.getElementById('selection').value;
-            } else {
-                const montant = document.getElementById('montant').value;
-                if (!montant) { alert('Saisissez un montant'); return; }
-                op.montant = parseFloat(montant);
-            }
-            
-            saveData();
-            alert(editingOperationId ? '✅ Opération modifiée !' : '✅ Opération enregistrée !');
-            resetForm();
-            renderOperations();
-            renderBookmakers();
-            renderTipsters();
-            renderStats();
-        }
-
-function autoCompleteSport(input) {
-            const sportMap = {
-                'F': 'Football', 'B': 'Basketball', 'V': 'Volley', 
-                'R': 'Rugby', '1': 'F1', 'H': 'Hockey'
-            };
-            return sportMap[input.toUpperCase()] || input;
-        }
-
-function cancelTipsterForm() {
-            document.getElementById('tipsterFormContainer').style.display = 'none';
-            document.getElementById('tipsterNom').value = '';
-            document.getElementById('tipsterDescription').value = '';
-            editingTipsterId = null;
-            document.getElementById('tipsterList').style.display = 'block';
-        }
-
-function calcTipsterStats(tipsterId) {
-            const paris = operations.filter(op => op.type === 'Pari' && op.tipster == tipsterId);
-            const gagnes = paris.filter(p => p.statut === 'Gagné').length;
-            const perdus = paris.filter(p => p.statut === 'Perdu').length;
-            let profit = 0;
-            paris.forEach(p => {
-                if (p.statut === 'Gagné') profit += (p.mise * p.cote - p.mise);
-                else if (p.statut === 'Perdu') profit -= p.mise;
-                else if (p.statut === 'Cash-out') profit += (p.cashoutAmount - p.mise);
-            });
-            const winRate = (gagnes + perdus) > 0 ? ((gagnes / (gagnes + perdus)) * 100).toFixed(2) : 0;
-            return { totalParis: paris.length, gagnes, perdus, profit, winRate };
-        }
-
-function resetApp() {
-            if (confirm('⚠️ ATTENTION : Cela supprimera TOUTES vos données (bookmakers, paris, tipsters, statistiques). Cette action est irréversible. Continuer ?')) {
-                if (confirm('Êtes-vous VRAIMENT sûr ? Toutes vos données seront perdues !')) {
-                    localStorage.clear();
-                    bookmakers = [];
-                    operations = [];
-                    tipsters = [];
-                    loadData();
-                    updateSelects();
-                    renderBookmakers();
-                    renderOperations();
-                    renderTipsters();
-                    renderStats();
-                    alert('✅ Application réinitialisée !');
-                }
-            }
-        }
-
-function confirmCashout() {
-            const amount = parseFloat(document.getElementById('cashoutAmount').value);
-            if (!amount || amount <= 0) {
-                alert('Saisissez un montant valide');
-                return;
-            }
-            const op = operations.find(o => o.id === currentCashoutId);
-            if (op && op.type === 'Pari') {
-                op.statut = 'Cash-out';
-                op.cashoutAmount = amount;
-                saveData();
-                renderOperations();
-                renderBookmakers();
-                renderTipsters();
-                renderStats();
-                closeCashoutModal();
-            }
-        }
-
-function updateSelects() {
-            const bookHtml = bookmakers.map(b => `<option value="${b.nom}">${b.nom}</option>`).join('');
-            document.getElementById('operationBookmaker').innerHTML = '<option value="">Sélectionner</option>' + bookHtml;
-            
-            const tipHtml = tipsters.map(t => `<option value="${t.id}">${t.nom}</option>`).join('');
-            document.getElementById('operationTipster').innerHTML = '<option value="">Aucun / Personnel</option>' + tipHtml;
-        }
-
-function editBookmaker(id) {
-            const bookmaker = bookmakers.find(b => b.id === id);
-            if (!bookmaker) return;
-            
-            document.getElementById('bookmakerNom').value = bookmaker.nom;
-            document.getElementById('bookmakerSolde').value = bookmaker.soldeInitial;
-            document.getElementById('bookmakerFormContainer').style.display = 'block';
-            document.getElementById('bookmakerFormTitle').textContent = 'Modifier Bookmaker';
-            
-            editingBookmakerId = id;
-        }
-
-function renderOperations() {
-            const tbody = document.getElementById('operationsTableBody');
-            if (operations.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; color: #9ca3af; padding: 40px;">Aucune opération</td></tr>';
-                return;
-            }
-
-            // Trier les opérations par date/heure (plus récent en haut)
-            const sortedOperations = [...operations].sort((a, b) => {
-                const dateA = new Date(a.dateOperation + 'T' + (a.heureOperation || '00:00'));
-                const dateB = new Date(b.dateOperation + 'T' + (b.heureOperation || '00:00'));
-                return dateB - dateA; // Plus récent en premier
-            });
-
-            tbody.innerHTML = sortedOperations.map(op => {
-                let resultat = '-';
-                if (op.type === 'Pari') {
-                    if (op.statut === 'Gagné') resultat = '+' + (op.mise * op.cote - op.mise).toFixed(2) + '€';
-                    else if (op.statut === 'Perdu') resultat = '-' + op.mise.toFixed(2) + '€';
-                    else if (op.statut === 'Remboursé') resultat = '0€';
-                    else if (op.statut === 'Cash-out') resultat = '+' + (op.cashoutAmount - op.mise).toFixed(2) + '€';
-                } else if (op.type === 'Frais') {
-                    resultat = '-' + op.montant.toFixed(2) + '€';
-                } else {
-                    resultat = (op.type === 'Dépôt' ? '+' : '-') + op.montant.toFixed(2) + '€';
-                }
-                
-                let badge = 'badge-info';
-                if (op.statut === 'Gagné') badge = 'badge-success';
-                else if (op.statut === 'Perdu') badge = 'badge-danger';
-                else if (op.statut === 'En cours') badge = 'badge-warning';
-                else if (op.statut === 'Cash-out') badge = 'badge-info';
-                else if (op.type !== 'Pari') badge = 'badge-secondary';
-                
-                let tipsterName = '-';
-                if (op.tipster) {
-                    const tip = tipsters.find(t => t.id == op.tipster);
-                    if (tip) tipsterName = tip.nom;
-                }
-
-                const sportIcon = sportIcons[op.sport] || '🏆';
-                const dateHeure = op.dateOperation + (op.heureOperation ? '<br><small>' + op.heureOperation + '</small>' : '');
-                
-                let actionsHtml = `
-                    <div class="action-buttons">
-                        <button class="btn btn-primary btn-sm" onclick="editOperation(${op.id})" title="Modifier">✏️</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteOperation(${op.id})" title="Supprimer">🗑️</button>
-                `;
-                
-                if (op.type === 'Pari' && op.statut === 'En cours') {
-                    actionsHtml += `
-                        <button class="btn btn-success btn-sm" onclick="updateOperationStatus(${op.id}, 'Gagné')" title="Gagné">✓</button>
-                        <button class="btn btn-danger btn-sm" onclick="updateOperationStatus(${op.id}, 'Perdu')" title="Perdu">✗</button>
-                        <button class="btn btn-warning btn-sm" onclick="updateOperationStatus(${op.id}, 'Remboursé')" title="Remboursé">↺</button>
-                        <button class="btn btn-info btn-sm" onclick="showCashoutModal(${op.id})" title="Cash-out">💰</button>
-                    `;
-                }
-                
-                actionsHtml += '</div>';
-                
-                return `
-                    <tr>
-                        <td>${dateHeure}</td>
-                        <td>${op.type}</td>
-                        <td>${op.bookmaker}</td>
-                        <td>${op.sport ? `<span class="sport-icon">${sportIcon}</span> ${op.sport}` : '-'}</td>
-                        <td>${op.match || '-'}</td>
-                        <td>${op.selection || '-'}</td>
-                        <td>${op.typePari || '-'}</td>
-                        <td>${tipsterName}</td>
-                        <td>${op.mise ? op.mise.toFixed(2) + '€' : '-'}</td>
-                        <td>${op.cote || '-'}</td>
-                        <td><span class="badge ${badge}">${op.statut || '-'}</span></td>
-                        <td>${resultat}</td>
-                        <td>${actionsHtml}</td>
-                    </tr>`;
-            }).join('');
-        }
-
-function cancelBookmakerForm() {
-            document.getElementById('bookmakerFormContainer').style.display = 'none';
-            document.getElementById('bookmakerNom').value = '';
-            document.getElementById('bookmakerSolde').value = '';
-            editingBookmakerId = null;
-        }
-
-function setupEvents() {
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    document.querySelectorAll('.tab-button, .tab-content').forEach(el => el.classList.remove('active'));
-                    this.classList.add('active');
-                    document.getElementById(this.dataset.tab).classList.add('active');
-                    if (this.dataset.tab === 'statistiques') renderStats();
-                    if (this.dataset.tab === 'bookmakers') renderBookmakers();
-                    if (this.dataset.tab === 'suivi-operations') renderOperations();
-                    if (this.dataset.tab === 'tipsters') renderTipsters();
-                });
-            });
-
-            document.getElementById('operationType').addEventListener('change', function() {
-                if (this.value === 'Pari') {
-                    document.getElementById('pariFields').style.display = 'block';
-                    document.getElementById('depotRetraitFields').style.display = 'none';
-                } else {
-                    document.getElementById('pariFields').style.display = 'none';
-                    document.getElementById('depotRetraitFields').style.display = 'block';
-                }
-            });
-
-            document.getElementById('mise').addEventListener('input', calcGain);
-            document.getElementById('cote').addEventListener('input', calcGain);
-
-            document.getElementById('matchSearch').addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                const q = this.value.toLowerCase();
-                if (q.length < 2) {
-                    document.getElementById('autocompleteResults').classList.remove('active');
-                    return;
-                }
-                searchTimeout = setTimeout(() => {
-                    const results = mockMatches.filter(m => m.home.toLowerCase().includes(q) || m.away.toLowerCase().includes(q));
-                    showResults(results);
-                }, 300);
-            });
-
-            // Autocomplétion pour le sport
-            document.getElementById('sport').addEventListener('input', function() {
-                const value = this.value;
-                if (value.length === 1) {
-                    const completed = autoCompleteSport(value);
-                    if (completed !== value) {
-                        this.value = completed;
-                    }
-                }
-            });
-        }
-
-function deleteOperation(id) {
-            if (confirm('Supprimer cette opération ?')) {
-                operations = operations.filter(o => o.id !== id);
-                saveData();
-                renderOperations();
-                renderBookmakers();
-                renderTipsters();
-                renderStats();
-            }
-        }
-
-function showCashoutModal(id) {
-            currentCashoutId = id;
-            document.getElementById('cashoutAmount').value = '';
-            document.getElementById('cashoutModal').classList.add('active');
-        }
-
-function closeTipsterDetails() {
-            document.getElementById('tipsterDetailsContainer').style.display = 'none';
-            document.getElementById('tipsterList').style.display = 'block';
-        }
-
-function exportData() {
-            const data = {
-                bookmakers: bookmakers,
-                operations: operations,
-                tipsters: tipsters,
-                exportDate: new Date().toISOString()
-            };
-            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `bankroll-backup-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            alert('✅ Données exportées avec succès !');
-        }
-
-function saveBookmaker() {
-            const nom = document.getElementById('bookmakerNom').value;
-            const solde = parseFloat(document.getElementById('bookmakerSolde').value);
-            if (!nom || isNaN(solde)) { alert('Remplissez tous les champs'); return; }
-            
-            if (editingBookmakerId) {
-                // Modification
-                const bookmaker = bookmakers.find(b => b.id === editingBookmakerId);
-                if (bookmaker) {
-                    bookmaker.nom = nom;
-                    bookmaker.soldeInitial = solde;
-                }
-            } else {
-                // Nouveau bookmaker
-                bookmakers.push({id: Date.now(), nom: nom, soldeInitial: solde});
-            }
-            
-            saveData();
-            updateSelects();
-            renderBookmakers();
-            cancelBookmakerForm();
-            alert('✅ Bookmaker ' + (editingBookmakerId ? 'modifié' : 'ajouté') + ' !');
-        }
-
-function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (confirm('⚠️ Importer ces données remplacera toutes vos données actuelles. Continuer ?')) {
-                        bookmakers = data.bookmakers || [];
-                        operations = data.operations || [];
-                        tipsters = data.tipsters || [];
-                        saveData();
-                        updateSelects();
-                        renderBookmakers();
-                        renderOperations();
-                        renderTipsters();
-                        renderStats();
-                        alert('✅ Données importées avec succès !');
-                    }
-                } catch (err) {
-                    alert('❌ Erreur lors de l\'importation : fichier invalide');
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = '';
-        }
-
-function showTipsterForm() { 
-            document.getElementById('tipsterFormContainer').style.display = 'block';
-            document.getElementById('tipsterDetailsContainer').style.display = 'none';
-            document.getElementById('tipsterFormTitle').textContent = 'Nouveau Tipster';
-            editingTipsterId = null;
-            document.getElementById('tipsterList').style.display = 'block';
-        }
-
-function closeCashoutModal() {
-            document.getElementById('cashoutModal').classList.remove('active');
-            currentCashoutId = null;
-        }
-
-function showTipsterDetails(tipsterId) {
-            const tipster = tipsters.find(t => t.id === tipsterId);
-            if (!tipster) return;
-            
-            const stats = calcTipsterStats(tipsterId);
-            const totalMises = operations.filter(op => op.type === 'Pari' && op.tipster == tipsterId).reduce((sum, p) => sum + (p.mise || 0), 0);
-            const roi = totalMises > 0 ? ((stats.profit / totalMises) * 100).toFixed(2) : 0;
-            
-            document.getElementById('tipsterDetailsTitle').textContent = `📊 Statistiques de ${tipster.nom}`;
-            document.getElementById('tipsterDetailsStats').innerHTML = `
-                <div class="stat-card purple"><div class="stat-label">Total paris</div><div class="stat-value">${stats.totalParis}</div></div>
-                <div class="stat-card ${stats.profit >= 0 ? 'green' : 'red'}"><div class="stat-label">Profit/Perte</div><div class="stat-value">${stats.profit >= 0 ? '+' : ''}${stats.profit.toFixed(2)}€</div></div>
-                <div class="stat-card"><div class="stat-label">ROI</div><div class="stat-value">${roi}%</div></div>
-                <div class="stat-card"><div class="stat-label">Taux de réussite</div><div class="stat-value">${stats.winRate}%</div></div>
-                <div class="stat-card green"><div class="stat-label">Paris gagnés</div><div class="stat-value">${stats.gagnes}</div></div>
-                <div class="stat-card red"><div class="stat-label">Paris perdus</div><div class="stat-value">${stats.perdus}</div></div>
-            `;
-            
-            document.getElementById('tipsterFormContainer').style.display = 'none';
-            document.getElementById('tipsterDetailsContainer').style.display = 'block';
-            document.getElementById('tipsterList').style.display = 'none';
-        }
-
-function showBookmakerForm() { 
-            document.getElementById('bookmakerFormContainer').style.display = 'block';
-            document.getElementById('bookmakerFormTitle').textContent = 'Nouveau Bookmaker';
-            editingBookmakerId = null;
-        }
-
-window.addEventListener('DOMContentLoaded', function() {
-    try {
-        if (typeof setupEvents === 'function') setupEvents();
-    } catch(e){console.error(e);}
-    try {
-        if (typeof initializeApp === 'function') initializeApp();
-    } catch(e){console.error(e);}
-    try {
-        if (typeof setupTabsScroll === 'function') setupTabsScroll();
-    } catch(e){/* optional */}
-});
-
-</script>
 </body>
 </html>
