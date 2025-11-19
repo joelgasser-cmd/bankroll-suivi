@@ -99,6 +99,7 @@
         .sync-status.error { background: #fee2e2; color: #991b1b; }
         .offline-mode { background: #fef3c7; color: #92400e; }
     </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
@@ -325,6 +326,7 @@
         
         <!-- Onglet Statistiques -->
         <div class="tab-content" id="statistiques" style="display: none;">
+<canvas id="statsChart" style="width:100%;max-width:900px;height:300px;margin-top:15px;"></canvas>
             <div class="card">
                 <h2 class="card-title">Statistiques</h2>
                 <div class="stats-grid" id="statsGrid"></div>
@@ -1037,7 +1039,7 @@
                         <td>${dateHeure}</td>
                         <td>${op.type}</td>
                         <td>${op.bookmaker}</td>
-                        <td>${op.sport ? `<span class="sport-icon">${sportIcon}</span> ${op.sport}` : '-'}</td>
+                        <td>${op.sport ? `<span class=\"sport-icon\">${sportIcon}</span>` : '-'}</td>
                         <td>${op.match || '-'}</td>
                         <td>${op.selection || '-'}</td>
                         <td>${op.typePari || '-'}</td>
@@ -1329,7 +1331,92 @@
                 <div class="stat-card green"><div class="stat-label">Paris gagnés</div><div class="stat-value">${gagnes}</div></div>
                 <div class="stat-card red"><div class="stat-label">Paris perdus</div><div class="stat-value">${perdus}</div></div>
             `;
+        
+
+    // --- Chart: cumulative bankroll from operations ---
+    try {
+        if (typeof operations !== 'undefined' && document.getElementById('statsChart')) {
+            // build data points sorted by date
+            const ops = (operations || []).slice().map(o=>{
+                // normalize date: prefer o.date, else o.dateOperation, else timestamp
+                let d = o.date || o.dateOperation || o.dateTime || o.date_time || '';
+                // try to ensure ISO format date
+                return Object.assign({}, o, { __date: d });
+            }).sort((a,b)=> new Date(a.__date) - new Date(b.__date));
+
+            let labels = [];
+            let cum = [];
+            let total = 0;
+
+            ops.forEach(o => {
+                // compute net change for this operation
+                let change = 0;
+                const type = o.type || o.typeOperation || o.operationType || (o.statut ? 'Pari' : '');
+                const statut = o.statut || '';
+                const mise = parseFloat(o.mise || o.montant || 0) || 0;
+                const cote = parseFloat(o.cote || 0) || 0;
+                const gainField = parseFloat(o.gain || o.gainNet || o.gain_net || 0) || 0;
+
+                if (type === 'Pari') {
+                    // if gainField present use it, else infer from mise/cote/statut
+                    if (gainField !== 0) {
+                        change = gainField;
+                    } else {
+                        if (statut === 'Gagné' || statut === 'Gagne' || statut === 'Gagnant') {
+                            // net profit = mise * (cote - 1)
+                            change = mise * (cote - 1);
+                        } else if (statut === 'Perdu') {
+                            change = -mise;
+                        } else {
+                            // ongoing / refunded => 0 or refunded
+                            if (statut === 'Remboursé' || statut === 'Refund') change = 0;
+                            else change = 0;
+                        }
+                    }
+                } else if (type === 'Dépôt' || type === 'Depot' || type === 'Deposit') {
+                    change = mise; // deposit increases bankroll
+                } else if (type === 'Retrait' || type === 'Withdrawal') {
+                    change = -mise;
+                } else if (type === 'Frais' || type === 'Fee') {
+                    change = -mise;
+                } else {
+                    // default: if gainField exists, use it
+                    change = gainField;
+                }
+
+                total += change;
+                // label by date (or index if date missing)
+                labels.push(o.__date ? (new Date(o.__date)).toLocaleDateString() : '');
+                cum.push(Math.round(total * 100)/100);
+            });
+
+            const ctx = document.getElementById('statsChart').getContext('2d');
+            if (window._statsChart) try { window._statsChart.destroy(); } catch(e){}
+            window._statsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.length ? labels : cum.map((_,i)=>i+1),
+                    datasets: [{
+                        label: 'Évolution cumulée (€)',
+                        data: cum,
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: true, position: 'top' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
         }
+    } catch(e){ console.error('Chart render error', e); }
+}
 
         function exportData() {
             const data = {
