@@ -1,281 +1,172 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Suivi de bankroll</title>
-
+<title>Suivi de bankroll — Fix</title>
 <!-- Firebase compat -->
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
 <style>
-/* Consolidated CSS (from your original files, kept visual identical) */
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:system-ui,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:20px}
-.container{max-width:1200px;margin:0 auto}
-.header{text-align:center;color:white;margin-bottom:30px}
-.header h1{font-size:2.2rem;margin-bottom:10px}
-.tabs-container{background:white;border-radius:12px 12px 0 0;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);position:relative}
-.tabs{display:flex;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
-.tab-button{flex:0 0 auto;padding:12px 14px;background:white;border:none;cursor:pointer;font-size:1rem;font-weight:600;color:#6b7280;border-bottom:3px solid transparent;min-width:120px}
-.tab-button.active{color:#3b82f6;border-bottom-color:#3b82f6;background:#eff6ff}
-.tab-content{display:none;background:white;padding:20px;border-radius:0 0 12px 12px;box-shadow:0 4px 6px rgba(0,0,0,0.1)}
+/* simplified styles (kept look similar) */
+*{box-sizing:border-box}body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:0;padding:20px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#111}
+.container{max-width:1100px;margin:0 auto}
+.header{text-align:center;color:#fff;margin-bottom:20px}
+.tabs{display:flex;gap:6px;background:#fff;padding:8px;border-radius:8px}
+.tab-button{background:#fff;border:none;padding:12px 14px;cursor:pointer;border-bottom:3px solid transparent;font-weight:600;color:#6b7280}
+.tab-button.active{background:#eff6ff;color:#3b82f6;border-bottom-color:#3b82f6}
+.tab-content{display:none;background:#fff;padding:18px;border-radius:0 0 8px 8px;margin-top:0}
 .tab-content.active{display:block}
-.card{background:white;padding:20px;border-radius:12px;margin-bottom:20px}
-.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:16px}
-.form-group{display:flex;flex-direction:column}
-label{font-weight:600;margin-bottom:8px;color:#374151}
-input,select{padding:10px;border:2px solid #e5e7eb;border-radius:8px;font-family:inherit}
-.btn{padding:10px 16px;border:none;border-radius:8px;font-weight:600;cursor:pointer}
-.btn-primary{background:#3b82f6;color:white}
-.btn-secondary{background:#6b7280;color:white}
-.btn-success{background:#22c55e;color:white}
-.btn-danger{background:#ef4444;color:white}
-.gain-display{background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);color:white;padding:10px;border-radius:8px;text-align:center;font-weight:700}
-.bookmaker-list{display:grid;gap:12px;margin-bottom:12px}
-.bookmaker-item{display:flex;justify-content:space-between;align-items:center;padding:12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb}
-.sync-status{position:fixed;top:18px;right:18px;background:white;padding:10px 12px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.12);z-index:999;font-size:0.9rem;display:none}
-.sync-status.syncing{background:#fef3c7;color:#92400e}
-.sync-status.synced{background:#dcfce7;color:#166534}
-.sync-status.error{background:#fee2e2;color:#991b1b}
-.mobile-loader{display:none;text-align:center;padding:40px;color:#6b7280}
-.mobile-loader.active{display:block}
-.autocomplete-results{position:absolute;left:0;right:0;background:white;border:1px solid #e5e7eb;max-height:200px;overflow:auto;z-index:99;border-radius:6px}
-.autocomplete-item{padding:8px;border-bottom:1px solid #f3f4f6;cursor:pointer}
-.table-wrap{overflow:auto}
-table{width:100%;border-collapse:collapse;margin-top:12px}
-th,td{padding:8px;text-align:left;border-bottom:1px solid #f3f4f6;font-size:0.9rem}
-.action-buttons{display:flex;gap:6px}
-.small{font-size:0.85rem}
-.modal{display:none;position:fixed;left:0;top:0;right:0;bottom:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:9999}
-.modal.active{display:flex}
+.card{background:#fff;padding:16px;border-radius:8px;margin-bottom:12px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:700px){.form-grid{grid-template-columns:1fr}}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+.sync-status{position:fixed;right:16px;top:16px;background:#fff;padding:8px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.08)}
+.firebase-error{background:#fee2e2;color:#991b1b;padding:10px;border-radius:6px;display:none}
+.gain-display{background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);color:#fff;padding:10px;border-radius:6px;text-align:center}
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="sync-status" id="syncStatus">🔄 Synchronisation...</div>
-
+  <div class="sync-status" id="syncStatus" style="display:none">🔄</div>
   <div class="header">
     <h1>💰 Suivi de bankroll</h1>
-    <p>Gérez vos paris sportifs et suivez vos performances</p>
+    <p>Gérez vos paris sportifs</p>
   </div>
 
-  <div class="mobile-loader" id="mobileLoader">
-    <div style="font-size:2rem;margin-bottom:16px;">⏳</div>
-    <h3>Chargement des données...</h3>
-    <p>Veuillez patienter</p>
-  </div>
+  <div id="firebaseError" class="firebase-error">❌ Firebase indisponible, mode local</div>
 
-  <div class="auth-container card" id="authContainer">
-    <h2>🔐 Connexion</h2>
-    <div id="firebaseError" style="display:none;padding:10px;background:#fee2e2;border-radius:8px;margin-bottom:10px;color:#991b1b;">❌ Firebase non disponible</div>
-    <div class="form-grid" style="max-width:480px;margin:10px auto;">
-      <div class="form-group"><label>Email</label><input id="authEmail" type="email" placeholder="votre@email.com"></div>
-      <div class="form-group"><label>Mot de passe</label><input id="authPassword" type="password" placeholder="Votre mot de passe"></div>
-    </div>
-    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;">
-      <button class="btn btn-primary" onclick="login()">Se connecter</button>
-      <button class="btn btn-secondary" onclick="signup()">Créer un compte</button>
-    </div>
-    <div style="text-align:center;margin-bottom:8px;">
-      <button class="btn" onclick="loginAnonymously()">Utiliser sans compte</button>
-    </div>
-    <div style="padding:10px;background:#f0f9ff;border-radius:8px;">
-      <small style="color:#0369a1"><strong>Mode hors ligne :</strong> si Firebase indisponible, l'application fonctionne en local.</small>
+  <div id="authContainer" class="card">
+    <h3>🔐 Connexion</h3>
+    <div style="max-width:420px;margin:0 auto">
+      <div class="form-grid" style="margin-bottom:8px">
+        <div><label>Email</label><input id="authEmail" type="email" style="width:100%;padding:8px"/></div>
+        <div><label>Mot de passe</label><input id="authPassword" type="password" style="width:100%;padding:8px"/></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button class="tab-button" onclick="login()">Se connecter</button>
+        <button class="tab-button" onclick="signup()">Créer</button>
+        <button class="tab-button" onclick="loginAnonymously()">Anonyme</button>
+      </div>
     </div>
   </div>
 
-  <div class="user-info card" id="userInfo" style="display:none;">
+  <div id="userInfo" class="card" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <strong>Connecté :</strong> <span id="userEmail" class="small"></span>
-        <span id="userAnonymous" class="small" style="margin-left:8px;color:#6b7280"></span>
-        <span id="firebaseStatus" class="small" style="margin-left:10px;"></span>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-danger" onclick="logout()">Déconnexion</button>
-      </div>
+      <div><strong id="userEmailDisplay"></strong> <span id="userAnon" style="color:#6b7280"></span></div>
+      <div><button onclick="logout()">Déconnexion</button></div>
     </div>
   </div>
 
-  <div class="tabs-container" id="appContent" style="display:none">
-    <div class="tabs" id="mainTabs">
-      <button class="tab-button active" data-tab="enregistrer">Enregistrer</button>
-      <button class="tab-button" data-tab="suivi-operations">Suivi</button>
-      <button class="tab-button" data-tab="tipsters">Tipsters</button>
-      <button class="tab-button" data-tab="bookmakers">Bookmakers</button>
-      <button class="tab-button" data-tab="statistiques">Stats</button>
-      <button class="tab-button" data-tab="outils">Outils</button>
-      <button class="tab-button" data-tab="reglages">Réglages</button>
-    </div>
+  <div class="tabs" id="mainTabs" style="display:none">
+    <button class="tab-button active" data-tab="enregistrer">Enregistrer</button>
+    <button class="tab-button" data-tab="suivi-operations">Suivi</button>
+    <button class="tab-button" data-tab="tipsters">Tipsters</button>
+    <button class="tab-button" data-tab="bookmakers">Bookmakers</button>
+    <button class="tab-button" data-tab="statistiques">Stats</button>
+    <button class="tab-button" data-tab="reglages">Réglages</button>
   </div>
 
-  <!-- ENREGISTRER -->
-  <div class="tab-content active" id="enregistrer">
+  <div id="enregistrer" class="tab-content active">
     <div class="card">
       <h3>Enregistrer une opération</h3>
-      <div class="form-grid">
-        <div class="form-group">
+      <div class="form-grid" style="margin-bottom:10px">
+        <div>
           <label>Type</label>
-          <select id="operationType">
-            <option value="Pari">Pari</option>
-            <option value="Dépôt">Dépôt</option>
-            <option value="Retrait">Retrait</option>
-            <option value="Frais">Frais</option>
+          <select id="operationType" style="width:100%;padding:8px">
+            <option>Pari</option><option>Dépôt</option><option>Retrait</option><option>Frais</option>
           </select>
         </div>
-        <div class="form-group">
+        <div>
           <label>Bookmaker</label>
-          <select id="operationBookmaker"><option value="">Sélectionner</option></select>
+          <select id="operationBookmaker" style="width:100%;padding:8px"><option value="">Sélectionner</option></select>
         </div>
       </div>
 
-      <div class="form-grid">
-        <div class="form-group"><label>Date</label><input type="date" id="dateOperation"></div>
-        <div class="form-group"><label>Heure</label><input type="time" id="heureOperation"></div>
+      <div class="form-grid" style="margin-bottom:10px">
+        <div><label>Date</label><input id="dateOperation" type="date" style="width:100%;padding:8px"/></div>
+        <div><label>Heure</label><input id="heureOperation" type="time" style="width:100%;padding:8px"/></div>
       </div>
 
       <div id="pariFields">
-        <div class="form-grid">
-          <div class="form-group"><label>Tipster</label><select id="operationTipster"><option value="">Aucun</option></select></div>
-          <div class="form-group" style="position:relative;">
-            <label>Rechercher un match</label>
-            <input id="matchSearch" type="text" placeholder="Tapez le nom d'une équipe">
-            <div id="autocompleteResults" class="autocomplete-results" style="display:none"></div>
-          </div>
+        <div class="form-grid" style="margin-bottom:10px">
+          <div><label>Sport</label><input id="sport" style="width:100%;padding:8px"/></div>
+          <div><label>Match</label><input id="match" style="width:100%;padding:8px"/></div>
         </div>
-
-        <div class="form-grid">
-          <div class="form-group"><label>Sport</label><input id="sport" type="text" placeholder="Football, Tennis..."></div>
-          <div class="form-group"><label>Match</label><input id="match" type="text" placeholder="PSG vs OM"></div>
+        <div class="form-grid" style="margin-bottom:10px">
+          <div><label>Mise (€)</label><input id="mise" type="number" step="0.01" style="width:100%;padding:8px"/></div>
+          <div><label>Côte</label><input id="cote" type="number" step="0.01" style="width:100%;padding:8px"/></div>
         </div>
-
-        <div class="form-grid">
-          <div class="form-group"><label>Sélection</label><input id="selection" type="text"></div>
-          <div class="form-group"><label>Type de pari</label>
-            <select id="typePari"><option>Simple</option><option>Multiple</option><option>Score exact</option></select>
-          </div>
-        </div>
-
-        <div class="form-grid">
-          <div class="form-group"><label>Mise (€)</label><input id="mise" type="number" step="0.01" value="0"></div>
-          <div class="form-group"><label>Côte</label><input id="cote" type="number" step="0.01" value="1.00"></div>
-          <div class="form-group"><label>Gain net (€)</label><div id="gainPotentiel" class="gain-display">0.00 €</div></div>
-        </div>
-
-        <div class="form-group"><label>Statut</label><select id="statut"><option>En cours</option><option>Gagné</option><option>Perdu</option><option>Remboursé</option></select></div>
+        <div style="margin-bottom:10px"><label>Gain net</label><div id="gainPotentiel" class="gain-display">0.00 €</div></div>
       </div>
 
       <div id="depotRetraitFields" style="display:none">
-        <div class="form-group"><label>Montant (€)</label><input id="montant" type="number" step="0.01"></div>
+        <div style="margin-bottom:10px"><label>Montant (€)</label><input id="montant" type="number" step="0.01" style="width:100%;padding:8px"/></div>
       </div>
 
-      <div style="margin-top:12px;display:flex;gap:8px">
-        <button class="btn btn-primary" onclick="saveOperation()">Enregistrer</button>
-        <button class="btn btn-secondary" id="cancelEditBtn" onclick="cancelEdit()" style="display:none">Annuler</button>
+      <div style="display:flex;gap:8px">
+        <button onclick="saveOperation()" class="tab-button">Enregistrer</button>
+        <button onclick="resetOperationForm()" class="tab-button">Réinitialiser</button>
       </div>
     </div>
   </div>
 
-  <!-- SUIVI -->
-  <div class="tab-content" id="suivi-operations">
+  <div id="suivi-operations" class="tab-content">
     <div class="card">
       <h3>Suivi des opérations</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Date/Heure</th><th>Type</th><th>Bookmaker</th><th>Match</th><th>Sélection</th><th>Mise</th><th>Côte</th><th>Statut</th><th>Actions</th></tr></thead>
-          <tbody id="operationsTableBody"><tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:20px">Aucune opération</td></tr></tbody>
+      <div style="overflow:auto">
+        <table class="table" id="operationsTable">
+          <thead><tr><th>Date</th><th>Type</th><th>Bookmaker</th><th>Mise</th><th>Côte</th><th>Statut</th><th>Actions</th></tr></thead>
+          <tbody id="operationsTableBody"><tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:20px">Aucune opération</td></tr></tbody>
         </table>
       </div>
     </div>
   </div>
 
-  <!-- TIPSTERS -->
-  <div class="tab-content" id="tipsters">
+  <div id="tipsters" class="tab-content">
     <div class="card">
       <h3>Tipsters</h3>
       <div id="tipsterList"></div>
-      <div style="margin-top:12px">
-        <button class="btn btn-primary" onclick="showTipsterForm()">Ajouter un tipster</button>
-      </div>
-
-      <div id="tipsterFormContainer" style="display:none;margin-top:12px">
-        <div class="form-grid">
-          <div class="form-group"><label>Nom</label><input id="tipsterNom"></div>
-          <div class="form-group"><label>Description</label><input id="tipsterDescription"></div>
-        </div>
-        <div style="margin-top:8px"><button class="btn btn-primary" onclick="saveTipster()">Enregistrer</button><button class="btn btn-secondary" onclick="cancelTipsterForm()">Annuler</button></div>
-      </div>
     </div>
   </div>
 
-  <!-- BOOKMAKERS -->
-  <div class="tab-content" id="bookmakers">
+  <div id="bookmakers" class="tab-content">
     <div class="card">
       <h3>Bookmakers</h3>
-      <div id="bookmakerList" class="bookmaker-list"></div>
-      <div style="margin-top:12px">
-        <button class="btn btn-primary" onclick="showBookmakerForm()">Ajouter un bookmaker</button>
-      </div>
-
-      <div id="bookmakerFormContainer" style="display:none;margin-top:12px">
-        <div class="form-grid">
-          <div class="form-group"><label>Nom</label><input id="bookmakerNom"></div>
-          <div class="form-group"><label>Solde initial (€)</label><input id="bookmakerSolde" type="number" step="0.01" value="0"></div>
-        </div>
-        <div style="margin-top:8px"><button class="btn btn-primary" onclick="saveBookmaker()">Enregistrer</button><button class="btn btn-secondary" onclick="cancelBookmakerForm()">Annuler</button></div>
+      <div id="bookmakerList"></div>
+      <div style="margin-top:8px">
+        <input id="bookmakerNom" placeholder="Nom" style="padding:8px;width:240px"/>
+        <input id="bookmakerSolde" placeholder="Solde initial" type="number" step="0.01" style="padding:8px;width:140px"/>
+        <button onclick="saveBookmaker()">Ajouter</button>
       </div>
     </div>
   </div>
 
-  <!-- STATS -->
-  <div class="tab-content" id="statistiques">
+  <div id="statistiques" class="tab-content">
     <div class="card">
       <h3>Statistiques</h3>
-      <div id="statsGrid" class="stats-grid"></div>
+      <div id="statsGrid"></div>
     </div>
   </div>
 
-  <!-- OUTILS -->
-  <div class="tab-content" id="outils">
+  <div id="reglages" class="tab-content">
     <div class="card">
-      <h3>Outils</h3>
-      <p class="small">Fonctionnalités d'export/import, reset, etc.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-success" onclick="exportData()">📥 Exporter</button>
-        <button class="btn btn-primary" onclick="document.getElementById('importFile').click()">📤 Importer</button>
-        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
-        <button class="btn btn-danger" onclick="resetApp()">🗑️ Réinitialiser</button>
+      <h3>Réglages & Import/Export</h3>
+      <div style="display:flex;gap:8px">
+        <button onclick="exportData()">Exporter JSON</button>
+        <input type="file" id="importFile" accept=".json" onchange="importData(event)"/>
+        <button onclick="resetApp()">Réinitialiser</button>
       </div>
     </div>
   </div>
 
-  <!-- RÉGLAGES -->
-  <div class="tab-content" id="reglages">
-    <div class="card">
-      <h3>Réglages</h3>
-      <p class="small">Mode local + Sync</p>
-      <div style="margin-top:10px"><small id="lastSyncInfo"></small></div>
-    </div>
-  </div>
-
-</div>
-
-<!-- Modal Cashout -->
-<div id="cashoutModal" class="modal">
-  <div style="background:white;padding:18px;border-radius:10px;max-width:420px;margin:auto">
-    <h4>Cash-out</h4>
-    <div class="form-group"><label>Montant (€)</label><input id="cashoutAmount" type="number" step="0.01" value="0"></div>
-    <div style="margin-top:10px;display:flex;gap:8px"><button class="btn btn-primary" onclick="confirmCashout()">Valider</button><button class="btn btn-secondary" onclick="closeCashoutModal()">Annuler</button></div>
-  </div>
 </div>
 
 <script>
-/* --------------------
-   CONFIG FIREBASE
-   -------------------- */
+// ----- CONFIG FIREBASE -----
 const firebaseConfig = {
   apiKey: "AIzaSyDbtGDuOVE4lYkVtLjZ0AnrpbWVnwcdvZI",
   authDomain: "bankroll-suivi.firebaseapp.com",
@@ -286,694 +177,356 @@ const firebaseConfig = {
   appId: "1:632546496211:web:25375f3e496c4a43490e26"
 };
 
-/* --------------------
-   STATE
-   -------------------- */
+// ----- STATE -----
 let bookmakers = [];
 let operations = [];
 let tipsters = [];
-let searchTimeout = null;
-let editingOperationId = null;
-let editingTipsterId = null;
-let editingBookmakerId = null;
 let currentUser = null;
-let firebaseInitialized = false;
 let auth = null;
 let database = null;
-let isMobile = /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
-let currentCashoutId = null;
-let isSyncing = false;
+let firebaseInitialized = false;
+let searchTimeout = null;
 
-/* Mock matches for autocomplete */
-const mockMatches = [
-  {sport:'Football',home:'Barnsley',away:'Lincoln',date:'2025-11-15',time:'20:00'},
-  {sport:'Football',home:'PSG',away:'OM',date:'2025-11-16',time:'21:00'},
-  {sport:'Football',home:'Real Madrid',away:'Barcelona',date:'2025-11-17',time:'20:00'},
-  {sport:'Football',home:'Manchester United',away:'Liverpool',date:'2025-11-18',time:'17:30'},
-  {sport:'Football',home:'Bayern',away:'Dortmund',date:'2025-11-19',time:'18:30'},
-  {sport:'Football',home:'Arsenal',away:'Chelsea',date:'2025-11-22',time:'16:00'}
-];
-
-/* --------------------
-   UTIL / UI HELPERS
-   -------------------- */
-function showSyncStatus(text, state='') {
+// ----- UTIL -----
+function showSyncStatus(msg, type){
   const el = document.getElementById('syncStatus');
-  if (!el) return;
+  el.textContent = msg;
   el.style.display = 'block';
-  el.textContent = text;
-  el.className = 'sync-status';
-  if (state) el.classList.add(state);
-  if (state === 'synced') setTimeout(()=>el.style.display='none',2000);
+  setTimeout(()=>el.style.display='none', 3500);
 }
 
-function showFirebaseError(msg) {
-  const el = document.getElementById('firebaseError');
-  if (!el) return;
-  el.style.display = 'block';
-  el.textContent = '❌ Firebase n\'est pas disponible : ' + (msg || '');
+// ----- LOCAL STORAGE -----
+function loadDataFromLocalStorage(){
+  try{
+    const b = localStorage.getItem('bookmakers');
+    const o = localStorage.getItem('operations');
+    const t = localStorage.getItem('tipsters');
+    bookmakers = b? JSON.parse(b) : [{id:1,nom:'Loro',soldeInitial:100},{id:2,nom:'bet365',soldeInitial:100},{id:3,nom:'Betclic',soldeInitial:100}];
+    operations = o? JSON.parse(o) : [];
+    tipsters = t? JSON.parse(t) : [];
+  }catch(e){
+    console.error('load local err',e);
+    bookmakers = [{id:1,nom:'Loro',soldeInitial:100},{id:2,nom:'bet365',soldeInitial:100},{id:3,nom:'Betclic',soldeInitial:100}];
+    operations = []; tipsters = [];
+  }
 }
 
-/* --------------------
-   INITIALISATION
-   -------------------- */
-function initializeApp() {
-  // hide everything then decide
+function saveDataToLocalStorage(){
+  localStorage.setItem('bookmakers', JSON.stringify(bookmakers));
+  localStorage.setItem('operations', JSON.stringify(operations));
+  localStorage.setItem('tipsters', JSON.stringify(tipsters));
+}
+
+// ----- FIREBASE -----
+async function initializeApp(){
+  // hide UI until ready
+  document.getElementById('mainTabs').style.display = 'none';
   document.getElementById('authContainer').style.display = 'none';
   document.getElementById('userInfo').style.display = 'none';
-  document.getElementById('appContent').style.display = 'none';
-  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
 
-  try {
-    if (typeof firebase === 'undefined') throw new Error('Firebase SDK non chargé');
+  try{
+    if(typeof firebase === 'undefined') throw new Error('Firebase SDK not loaded');
     firebase.initializeApp(firebaseConfig);
     auth = firebase.auth();
     database = firebase.database();
     firebaseInitialized = true;
-    console.log('Firebase initialisé');
-
-    // auth listener
-    auth.onAuthStateChanged(user => {
+    console.log('Firebase initialized');
+    auth.onAuthStateChanged(async (user)=>{
       currentUser = user;
-      if (user) {
+      if(user){
         showAppUI(user);
+        await loadUserData();
       } else {
+        // show auth screen
         showAuthUI();
       }
-    }, err => {
-      console.error('auth error', err);
-      showFirebaseError(err.message || 'Erreur auth');
+    }, (err)=>{
+      console.error('auth err',err);
+      showFirebaseError();
       showLocalMode();
     });
-
-  } catch (err) {
-    console.error('Init Firebase échouée', err);
-    showFirebaseError(err.message || 'init failed');
+  }catch(err){
+    console.warn('firebase init failed',err);
+    showFirebaseError();
     showLocalMode();
   }
 }
 
-/* --------------------
-   AUTH / UI SWITCH
-   -------------------- */
-function showLocalMode() {
-  // local only
+function showFirebaseError(){
+  const el = document.getElementById('firebaseError');
+  if(el) el.style.display = 'block';
+}
+
+function showAuthUI(){
+  document.getElementById('authContainer').style.display = 'block';
+  document.getElementById('mainTabs').style.display = 'none';
+  document.getElementById('userInfo').style.display = 'none';
+}
+
+function showLocalMode(){
   loadDataFromLocalStorage();
   updateUI();
   document.getElementById('authContainer').style.display = 'none';
   document.getElementById('userInfo').style.display = 'none';
-  document.getElementById('appContent').style.display = 'block';
-  document.getElementById('enregistrer').classList.add('active');
-  showSyncStatus('📱 Mode local - Données locales', 'synced');
-  const fs = document.getElementById('firebaseStatus');
-  if (fs) { fs.textContent='(Mode local)'; fs.style.color='#f59e0b'; }
+  document.getElementById('mainTabs').style.display = 'flex';
+  // show default tab
+  activateTabByName('enregistrer');
+  showSyncStatus('📱 Mode local - Données locales');
 }
 
-function showAuthUI() {
-  document.getElementById('authContainer').style.display = 'block';
-  document.getElementById('userInfo').style.display = 'none';
-  document.getElementById('appContent').style.display = 'none';
-  document.getElementById('authEmail').value = '';
-  document.getElementById('authPassword').value = '';
-}
-
-function showAppUI(user) {
+function showAppUI(user){
   document.getElementById('authContainer').style.display = 'none';
   document.getElementById('userInfo').style.display = 'block';
-  document.getElementById('appContent').style.display = 'block';
-  if (user.isAnonymous) {
-    document.getElementById('userEmail').textContent = '';
-    document.getElementById('userAnonymous').textContent = 'Compte anonyme';
-  } else {
-    document.getElementById('userEmail').textContent = user.email||user.uid;
-    document.getElementById('userAnonymous').textContent = '';
-  }
-  document.getElementById('firebaseStatus').textContent = '(Synchronisé)';
-  document.getElementById('firebaseStatus').style.color = '#16a34a';
-  // show first tab
-  document.querySelector('.tab-button').click();
-  // load user data
-  loadUserData();
+  document.getElementById('mainTabs').style.display = 'flex';
+  document.getElementById('userEmailDisplay').textContent = user.email || '';
+  document.getElementById('userAnon').textContent = user.isAnonymous ? '(Compte anonyme)' : '';
+  activateTabByName('enregistrer');
 }
 
-/* --------------------
-   LOCAL STORAGE
-   -------------------- */
-def_save_data_local = None
-def_save_data_to_firebase = None
-def_load_user_data = None
-
-function loadDataFromLocalStorage() {
-  try {
-    bookmakers = JSON.parse(localStorage.getItem('bookmakers')||'[]') || [];
-    operations = JSON.parse(localStorage.getItem('operations')||'[]') || [];
-    tipsters = JSON.parse(localStorage.getItem('tipsters')||'[]') || [];
-  } catch(e){ bookmakers=[]; operations=[]; tipsters=[]; }
-
-  if (!bookmakers || bookmakers.length===0) {
-    bookmakers = [
-      {id: 'bm-'+Date.now(), nom: 'Loro', soldeInitial: 100, soldeActuel:100},
-      {id: 'bm-'+(Date.now()+1), nom: 'bet365', soldeInitial: 100, soldeActuel:100},
-      {id: 'bm-'+(Date.now()+2), nom: 'Betclic', soldeInitial: 100, soldeActuel:100}
-    ];
-    saveDataToLocalStorage();
-  }
+// firebase save/load
+async function saveDataToFirebase(){
+  if(!firebaseInitialized || !currentUser || !database) return;
+  try{
+    showSyncStatus('🔄 Sauvegarde Firebase...');
+    const payload = {bookmakers,operations,tipsters,lastUpdated:firebase.database.ServerValue.TIMESTAMP};
+    await database.ref('users/' + currentUser.uid).set(payload);
+    showSyncStatus('✅ Données sauvegardées');
+  }catch(e){console.error('save firebase',e);showSyncStatus('❌ Erreur sauvegarde');}
 }
 
-function saveDataToLocalStorage() {
-  localStorage.setItem('bookmakers', JSON.stringify(bookmakers));
-  localStorage.setItem('operations', JSON.stringify(operations));
-  localStorage.setItem('tipsters', JSON.stringify(tipsters));
-  console.log('Données sauvegardées localement');
-  document.getElementById('lastSyncInfo').textContent = 'Dernière sauvegarde locale : ' + (new Date()).toLocaleString();
-}
-
-/* --------------------
-   FIREBASE SYNC
-   -------------------- */
-let firebaseSaveTimer = null;
-function saveData() {
-  saveDataToLocalStorage();
-  if (firebaseInitialized && currentUser && database) saveDataToFirebase();
-}
-
-async function saveDataToFirebase() {
-  if (!firebaseInitialized || !currentUser || !database) return;
-  try {
-    isSyncing = true;
-    showSyncStatus('🔄 Sauvegarde vers Firebase...', 'syncing');
-    const userData = {bookmakers, operations, tipsters, lastUpdated: firebase.database.ServerValue.TIMESTAMP};
-    await database.ref('users/' + currentUser.uid).set(userData);
-    showSyncStatus('✅ Données sauvegardées', 'synced');
-    document.getElementById('lastSyncInfo').textContent = 'Dernière sync Firebase : ' + (new Date()).toLocaleString();
-  } catch(err) {
-    console.error('Erreur sauvegarde firebase', err);
-    showSyncStatus('❌ Erreur sauvegarde', 'error');
-  } finally { isSyncing = false; }
-}
-
-async function loadUserData() {
-  if (!firebaseInitialized || !currentUser || !database) {
-    loadDataFromLocalStorage();
-    updateUI();
-    return;
-  }
-  try {
-    showSyncStatus('🔄 Chargement depuis Firebase...', 'syncing');
-    if (isMobile) document.getElementById('mobileLoader').classList.add('active');
-    const snapshot = await database.ref('users/' + currentUser.uid).once('value');
-    const data = snapshot.val();
-    if (data) {
+async function loadUserData(){
+  if(!firebaseInitialized || !currentUser || !database){ loadDataFromLocalStorage(); updateUI(); return;}
+  try{
+    showSyncStatus('🔄 Chargement Firebase...');
+    const snap = await database.ref('users/' + currentUser.uid).once('value');
+    const data = snap.val();
+    if(data){
       bookmakers = data.bookmakers || [];
       operations = data.operations || [];
       tipsters = data.tipsters || [];
-      saveDataToLocalStorage();
-      console.log('Données chargées depuis Firebase');
+      showSyncStatus('✅ Données chargées depuis Firebase');
     } else {
       loadDataFromLocalStorage();
     }
     updateUI();
-    showSyncStatus('✅ Données chargées', 'synced');
-  } catch(err) {
-    console.error('Erreur chargement firebase', err);
-    showSyncStatus('❌ Erreur chargement', 'error');
+  }catch(e){
+    console.error('load user data',e);
     loadDataFromLocalStorage();
     updateUI();
-  } finally {
-    if (isMobile) document.getElementById('mobileLoader').classList.remove('active');
+    showSyncStatus('⚠️ Utilisation des données locales');
   }
 }
 
-/* --------------------
-   AUTH FUNCTIONS
-   -------------------- */
-async function login() {
-  if (!firebaseInitialized || !auth) { alert('Firebase non disponible — mode local'); showLocalMode(); return; }
-  const email = document.getElementById('authEmail').value.trim();
+// ----- AUTH -----
+async function login(){
+  if(!firebaseInitialized || !auth){ alert('Firebase indisponible — mode local'); showLocalMode(); return; }
+  const email = document.getElementById('authEmail').value;
   const password = document.getElementById('authPassword').value;
-  if (!email || !password) { alert('Remplir email et mot de passe'); return; }
-  try { showSyncStatus('🔄 Connexion...', 'syncing'); await auth.signInWithEmailAndPassword(email,password); } 
-  catch(err){ console.error(err); alert('Erreur connexion: '+err.message); showSyncStatus('❌ Erreur connexion', 'error'); }
+  if(!email||!password){ alert('Remplir email et mot de passe'); return; }
+  try{ showSyncStatus('🔄 Connexion...'); await auth.signInWithEmailAndPassword(email,password); }
+  catch(e){ alert('Erreur connexion: '+e.message); console.error(e); showLocalMode(); }
 }
-
-async function signup() {
-  if (!firebaseInitialized || !auth) { alert('Firebase non disponible — mode local'); showLocalMode(); return; }
-  const email = document.getElementById('authEmail').value.trim();
+async function signup(){
+  if(!firebaseInitialized || !auth){ alert('Firebase indisponible — mode local'); showLocalMode(); return; }
+  const email = document.getElementById('authEmail').value;
   const password = document.getElementById('authPassword').value;
-  if (!email || !password) { alert('Remplir email et mot de passe'); return; }
-  if (password.length<6) { alert('Mot de passe min 6 caractères'); return; }
-  try { showSyncStatus('🔄 Création compte...', 'syncing'); await auth.createUserWithEmailAndPassword(email,password); } 
-  catch(err){ console.error(err); alert('Erreur création: '+err.message); showSyncStatus('❌ Erreur', 'error'); }
+  if(!email||!password){ alert('Remplir email et mot de passe'); return; }
+  if(password.length<6){ alert('Mot de passe >=6 caractères'); return; }
+  try{ showSyncStatus('🔄 Création compte...'); await auth.createUserWithEmailAndPassword(email,password); }
+  catch(e){ alert('Erreur création compte: '+e.message); console.error(e); }
 }
-
-async function loginAnonymously() {
-  if (!firebaseInitialized || !auth) { alert('Firebase non disponible — mode local'); showLocalMode(); return; }
-  try { showSyncStatus('🔄 Connexion anonyme...', 'syncing'); await auth.signInAnonymously(); } 
-  catch(err){ console.error(err); alert('Erreur connexion anonyme: '+err.message); showSyncStatus('❌ Erreur', 'error'); }
+async function loginAnonymously(){
+  if(!firebaseInitialized || !auth){ alert('Firebase indisponible — mode local'); showLocalMode(); return; }
+  try{ showSyncStatus('🔄 Connexion anonyme...'); await auth.signInAnonymously(); }
+  catch(e){ alert('Erreur connexion anonyme: '+e.message); console.error(e); }
 }
+async function logout(){ if(!firebaseInitialized || !auth){ showAuthUI(); return; } try{ await auth.signOut(); showAuthUI(); }catch(e){ alert('Erreur logout'); } }
 
-async function logout() {
-  if (!firebaseInitialized || !auth) { showAuthUI(); return; }
-  try { await auth.signOut(); showAuthUI(); } catch(err){ alert('Erreur deconnexion: '+err.message); }
-}
-
-/* --------------------
-   UI RENDER
-   -------------------- */
-function updateSelects() {
-  const opBm = document.getElementById('operationBookmaker');
-  const opTip = document.getElementById('operationTipster');
-  [opBm, opTip].forEach(el=>{ if(el) el.innerHTML=''; });
-  if (opBm) {
-    const empty = document.createElement('option'); empty.value=''; empty.textContent='Sélectionner'; opBm.appendChild(empty);
-    bookmakers.forEach(b => { const o=document.createElement('option'); o.value=b.id; o.textContent=b.nom; opBm.appendChild(o); });
-  }
-  if (opTip) {
-    const empty = document.createElement('option'); empty.value=''; empty.textContent='Aucun'; opTip.appendChild(empty);
-    tipsters.forEach(t => { const o=document.createElement('option'); o.value=t.id; o.textContent=t.nom; opTip.appendChild(o); });
-  }
-}
-
-function renderBookmakers() {
-  const list = document.getElementById('bookmakerList');
-  list.innerHTML = '';
-  if (bookmakers.length===0) { list.innerHTML = '<div style="color:#9ca3af">Aucun bookmaker</div>'; return; }
-  bookmakers.forEach(b => {
-    const item = document.createElement('div'); item.className='bookmaker-item';
-    item.innerHTML = `<div>
-      <div style="font-weight:700">${b.nom}</div>
-      <div class="small">Solde initial: ${Number(b.soldeInitial||0).toFixed(2)} €</div>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <div style="font-weight:700;color:#3b82f6">${Number(b.soldeActuel||b.soldeInitial||0).toFixed(2)} €</div>
-      <div class="action-buttons">
-        <button class="btn small" onclick="editBookmaker('${b.id}')">✏️</button>
-        <button class="btn small" onclick="deleteBookmaker('${b.id}')">🗑️</button>
-      </div>
-    </div>`;
-    list.appendChild(item);
-  });
-}
-
-function renderTipsters() {
-  const out = document.getElementById('tipsterList'); out.innerHTML='';
-  if (tipsters.length===0) out.innerHTML='<div style="color:#9ca3af">Aucun tipster</div>';
-  tipsters.forEach(t => {
-    const el = document.createElement('div'); el.className='tipster-card'; el.style.padding='10px'; el.style.border='1px solid #e5e7eb';
-    el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700">${t.nom}</div>
-      <div style="display:flex;gap:6px"><button class="btn small" onclick="editTipster('${t.id}')">✏️</button><button class="btn small" onclick="deleteTipster('${t.id}')">🗑️</button></div></div>
-      <div class="small" style="color:#6b7280;margin-top:6px">${t.description||''}</div>`;
-    out.appendChild(el);
-  });
-}
-
-function renderOperations() {
-  const tbody = document.getElementById('operationsTableBody'); tbody.innerHTML='';
-  if (!operations || operations.length===0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:20px">Aucune opération</td></tr>';
-    return;
-  }
-  operations.slice().reverse().forEach(op => {
-    const bm = bookmakers.find(b=>b.id===op.bookmaker);
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${op.date} ${op.time||''}</td>
-      <td>${op.type}</td>
-      <td>${bm?bm.nom:'-'}</td>
-      <td>${op.match||''}</td>
-      <td>${op.selection||''}</td>
-      <td>${op.mise?Number(op.mise).toFixed(2):''}</td>
-      <td>${op.cote?Number(op.cote).toFixed(2):''}</td>
-      <td>${op.statut||''}</td>
-      <td>
-        <div class="action-buttons">
-          <button class="btn small" onclick="editOperation('${op.id}')">✏️</button>
-          <button class="btn small" onclick="openCashout('${op.id}')">💵</button>
-          <button class="btn small" onclick="deleteOperation('${op.id}')">🗑️</button>
-        </div>
-      </td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-function renderStats() {
-  const grid = document.getElementById('statsGrid'); grid.innerHTML = '';
-  const totalMise = operations.reduce((s,o)=>s + Number(o.mise||0),0);
-  const totalGain = operations.reduce((s,o)=> {
-    if (o.statut==='Gagné' && o.cote) return s + ((Number(o.mise||0)*(Number(o.cote||1))) - Number(o.mise||0));
-    return s;
-  },0);
-  const won = operations.filter(o=>o.statut==='Gagné').length;
-  const lost = operations.filter(o=>o.statut==='Perdu').length;
-  grid.innerHTML = `
-    <div class="stat-card" style="padding:14px;border-radius:8px;margin-bottom:10px">
-      <div class="stat-label small">Mise totale</div><div class="stat-value">${totalMise.toFixed(2)} €</div>
-    </div>
-    <div class="stat-card green" style="padding:14px;border-radius:8px;margin-bottom:10px">
-      <div class="stat-label small">Gain net</div><div class="stat-value">${totalGain.toFixed(2)} €</div>
-    </div>
-    <div class="stat-card" style="padding:14px;border-radius:8px;margin-bottom:10px">
-      <div class="stat-label small">Gagnés</div><div class="stat-value">${won}</div>
-    </div>
-    <div class="stat-card red" style="padding:14px;border-radius:8px;margin-bottom:10px">
-      <div class="stat-label small">Perdus</div><div class="stat-value">${lost}</div>
-    </div>`;
-}
-
-/* --------------------
-   FORM ACTIONS
-   -------------------- */
-function calcGain() {
-  const mise = Number(document.getElementById('mise').value||0);
-  const cote = Number(document.getElementById('cote').value||1);
-  const gain = (mise * cote) - mise;
-  document.getElementById('gainPotentiel').textContent = gain.toFixed(2) + ' €';
-}
-
-function resetOperationForm() {
-  editingOperationId = null;
-  document.getElementById('cancelEditBtn').style.display='none';
-  document.getElementById('operationType').value='Pari';
-  document.getElementById('operationBookmaker').value='';
-  document.getElementById('dateOperation').value = new Date().toISOString().split('T')[0];
-  document.getElementById('heureOperation').value = new Date().toTimeString().slice(0,5);
-  document.getElementById('matchSearch').value='';
-  document.getElementById('sport').value='';
-  document.getElementById('match').value='';
-  document.getElementById('selection').value='';
-  document.getElementById('typePari').value='Simple';
-  document.getElementById('mise').value = 0;
-  document.getElementById('cote').value = 1;
-  document.getElementById('statut').value='En cours';
-  calcGain();
-  document.getElementById('pariFields').style.display='block';
-  document.getElementById('depotRetraitFields').style.display='none';
-}
-
-function saveOperation() {
-  const type = document.getElementById('operationType').value;
-  const bookmaker = document.getElementById('operationBookmaker').value;
-  const date = document.getElementById('dateOperation').value;
-  const time = document.getElementById('heureOperation').value;
-  if (!type || (type!=='Dépôt' && type!=='Retrait' && !bookmaker)) { alert('Sélectionner un bookmaker'); return; }
-
-  if (type === 'Pari') {
-    const mise = Number(document.getElementById('mise').value||0);
-    const cote = Number(document.getElementById('cote').value||1);
-    const selection = document.getElementById('selection').value;
-    const match = document.getElementById('match').value;
-    const statut = document.getElementById('statut').value;
-    if (!mise) { if (!confirm('Mise à 0 ?')) return; }
-    const op = {
-      id: editingOperationId||('op-'+Date.now()),
-      type, bookmaker, date, time, mise, cote, selection, match, statut
-    };
-    if (editingOperationId) {
-      operations = operations.map(o=>o.id===editingOperationId?op:o);
-    } else {
-      operations.push(op);
-    }
-    recalcBookmakerBalances();
-  } else {
-    const montant = Number(document.getElementById('montant').value||0);
-    if (!montant) { alert('Montant requis'); return; }
-    const op = { id: editingOperationId||('op-'+Date.now()), type, bookmaker, date, time, montant };
-    if (editingOperationId) operations = operations.map(o=>o.id===editingOperationId?op:o);
-    else operations.push(op);
-    recalcBookmakerBalances();
-  }
-
-  saveData();
-  updateUI();
-  resetOperationForm();
-}
-
-function cancelEdit() { resetOperationForm(); }
-
-function editOperation(id) {
-  const op = operations.find(o=>o.id===id);
-  if (!op) return;
-  editingOperationId = id;
-  document.getElementById('cancelEditBtn').style.display='inline-block';
-  document.getElementById('operationType').value = op.type || 'Pari';
-  document.getElementById('operationBookmaker').value = op.bookmaker || '';
-  document.getElementById('dateOperation').value = op.date || new Date().toISOString().split('T')[0];
-  document.getElementById('heureOperation').value = op.time || new Date().toTimeString().slice(0,5);
-  if (op.type === 'Pari') {
-    document.getElementById('pariFields').style.display='block';
-    document.getElementById('depotRetraitFields').style.display='none';
-    document.getElementById('mise').value = op.mise||0;
-    document.getElementById('cote').value = op.cote||1;
-    document.getElementById('selection').value = op.selection||'';
-    document.getElementById('match').value = op.match||'';
-    document.getElementById('statut').value = op.statut||'En cours';
-    calcGain();
-  } else {
-    document.getElementById('pariFields').style.display='none';
-    document.getElementById('depotRetraitFields').style.display='block';
-    document.getElementById('montant').value = op.montant||0;
-  }
-  document.querySelector('[data-tab="enregistrer"]').click();
-}
-
-function deleteOperation(id) {
-  if (!confirm('Supprimer cette opération ?')) return;
-  operations = operations.filter(o=>o.id!==id);
-  recalcBookmakerBalances();
-  saveData();
-  updateUI();
-}
-
-/* --------------------
-   BOOKMAKERS
-   -------------------- */
-function showBookmakerForm() {
-  document.getElementById('bookmakerFormContainer').style.display='block';
-  editingBookmakerId = null; document.getElementById('bookmakerNom').value=''; document.getElementById('bookmakerSolde').value=0;
-}
-
-function cancelBookmakerForm(){ document.getElementById('bookmakerFormContainer').style.display='none'; editingBookmakerId=null; }
-
-function saveBookmaker() {
-  const nom = document.getElementById('bookmakerNom').value.trim();
-  const soldeInitial = Number(document.getElementById('bookmakerSolde').value||0);
-  if (!nom) { alert('Nom requis'); return; }
-  if (editingBookmakerId) {
-    bookmakers = bookmakers.map(b => b.id===editingBookmakerId ? {...b, nom, soldeInitial, soldeActuel: b.soldeActuel ?? soldeInitial} : b);
-  } else {
-    bookmakers.push({id:'bm-'+Date.now(), nom, soldeInitial, soldeActuel: soldeInitial});
-  }
-  saveData();
-  renderBookmakers(); updateSelects();
-  cancelBookmakerForm();
-}
-
-function editBookmaker(id) {
-  const b = bookmakers.find(x=>x.id===id); if(!b) return;
-  editingBookmakerId = id; document.getElementById('bookmakerFormContainer').style.display='block';
-  document.getElementById('bookmakerNom').value = b.nom; document.getElementById('bookmakerSolde').value = b.soldeInitial || 0;
-}
-
-function deleteBookmaker(id) {
-  if (!confirm('Supprimer bookmaker et toutes ses opérations associées ?')) return;
-  bookmakers = bookmakers.filter(b=>b.id!==id);
-  operations = operations.filter(o=>o.bookmaker!==id);
-  saveData(); updateUI();
-}
-
-/* --------------------
-   TIPSTERS
-   -------------------- */
-function showTipsterForm() {
-  editingTipsterId = null; document.getElementById('tipsterFormContainer').style.display='block'; document.getElementById('tipsterNom').value=''; document.getElementById('tipsterDescription').value='';
-}
-
-function cancelTipsterForm(){ document.getElementById('tipsterFormContainer').style.display='none'; editingTipsterId=null; }
-
-function saveTipster() {
-  const nom = document.getElementById('tipsterNom').value.trim();
-  const desc = document.getElementById('tipsterDescription').value.trim();
-  if (!nom) { alert('Nom requis'); return; }
-  if (editingTipsterId) tipsters = tipsters.map(t=>t.id===editingTipsterId?{...t, nom, description:desc}:t);
-  else tipsters.push({id:'tp-'+Date.now(), nom, description:desc});
-  saveData(); renderTipsters(); updateSelects(); cancelTipsterForm();
-}
-
-function editTipster(id) {
-  const t = tipsters.find(x=>x.id===id); if(!t) return;
-  editingTipsterId = id; document.getElementById('tipsterFormContainer').style.display='block';
-  document.getElementById('tipsterNom').value = t.nom; document.getElementById('tipsterDescription').value = t.description||'';
-}
-
-function deleteTipster(id) {
-  if (!confirm('Supprimer ce tipster ?')) return;
-  tipsters = tipsters.filter(t=>t.id!==id);
-  saveData(); renderTipsters(); updateSelects();
-}
-
-/* --------------------
-   BALANCE / HELPERS
-   -------------------- */
-function recalcBookmakerBalances() {
-  bookmakers.forEach(b => b.soldeActuel = Number(b.soldeInitial||0));
-  operations.forEach(op => {
-    if (!op.bookmaker) return;
-    const b = bookmakers.find(x=>x.id===op.bookmaker);
-    if (!b) return;
-    if (op.type === 'Dépôt') b.soldeActuel += Number(op.montant||0);
-    else if (op.type === 'Retrait') b.soldeActuel -= Number(op.montant||0);
-    else if (op.type === 'Frais') b.soldeActuel -= Number(op.montant||0);
-    else if (op.type === 'Pari') {
-      if (op.statut === 'Gagné') {
-        const win = (Number(op.mise||0) * Number(op.cote||1)) - Number(op.mise||0);
-        b.soldeActuel += Number(op.mise||0) + win;
-      } else if (op.statut === 'Perdu') {
-        b.soldeActuel -= Number(op.mise||0);
-      }
-    }
-  });
-  saveDataToLocalStorage();
-}
-
-/* --------------------
-   CASHOUT
-   -------------------- */
-function openCashout(id) {
-  currentCashoutId = id;
-  document.getElementById('cashoutAmount').value = '';
-  document.getElementById('cashoutModal').classList.add('active');
-}
-
-function closeCashoutModal() { currentCashoutId = null; document.getElementById('cashoutModal').classList.remove('active'); }
-
-function confirmCashout() {
-  const amt = Number(document.getElementById('cashoutAmount').value||0);
-  if (!amt || !currentCashoutId) { alert('Montant requis'); return; }
-  const op = operations.find(o=>o.id===currentCashoutId);
-  if (!op) { alert('Opération introuvable'); closeCashoutModal(); return; }
-  operations.push({id:'op-'+Date.now(), type:'Dépôt', bookmaker:op.bookmaker, date:new Date().toISOString().split('T')[0], time:new Date().toTimeString().slice(0,5), montant:amt});
-  recalcBookmakerBalances(); saveData(); updateUI();
-  closeCashoutModal();
-}
-
-/* --------------------
-   AUTOCOMPLETE MATCH SEARCH
-   -------------------- */
-function searchMatches() {
-  const q = document.getElementById('matchSearch').value.trim().toLowerCase();
-  const results = mockMatches.filter(m => m.home.toLowerCase().includes(q) || m.away.toLowerCase().includes(q));
-  const container = document.getElementById('autocompleteResults'); container.innerHTML='';
-  if (!q || results.length===0) { container.style.display='none'; return; }
-  results.forEach(r=>{
-    const el = document.createElement('div'); el.className='autocomplete-item';
-    el.textContent = `${r.home} vs ${r.away} — ${r.date} ${r.time}`;
-    el.onclick = ()=> { selectMatch(r); container.style.display='none'; };
-    container.appendChild(el);
-  });
-  container.style.display = 'block';
-}
-
-function selectMatch(m) {
-  document.getElementById('sport').value = m.sport;
-  document.getElementById('match').value = `${m.home} vs ${m.away}`;
-  document.getElementById('dateOperation').value = m.date;
-  document.getElementById('heureOperation').value = m.time;
-}
-
-/* --------------------
-   EXPORT / IMPORT / RESET
-   -------------------- */
-function exportData() {
-  const data = {bookmakers, operations, tipsters, exportedAt:new Date().toISOString()};
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'bankroll-export.json'; a.click();
-  URL.revokeObjectURL(url);
-}
-
-function importData(e) {
-  const file = e.target.files && e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const data = JSON.parse(reader.result);
-      if (data.bookmakers) bookmakers = data.bookmakers;
-      if (data.operations) operations = data.operations;
-      if (data.tipsters) tipsters = data.tipsters;
-      saveData(); updateUI(); alert('Import terminé');
-    } catch(err){ alert('Fichier invalide'); }
-  };
-  reader.readAsText(file);
-}
-
-function resetApp() {
-  if (!confirm('Réinitialiser l application ? Cela supprimera toutes les données locales.')) return;
-  localStorage.removeItem('bookmakers'); localStorage.removeItem('operations'); localStorage.removeItem('tipsters');
-  bookmakers = []; operations = []; tipsters = [];
-  loadDataFromLocalStorage(); saveDataToLocalStorage(); updateUI();
-}
-
-/* --------------------
-   TABS + EVENTS
-   -------------------- */
-function setupEvents() {
+// ----- UI / TABS -----
+function setupEvents(){
   document.querySelectorAll('.tab-button').forEach(btn=>{
     btn.addEventListener('click', function(){
       document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(tc=>tc.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
       this.classList.add('active');
-      const t = this.dataset.tab;
-      const tabEl = document.getElementById(t);
-      if (tabEl) tabEl.classList.add('active');
-      if (t === 'statistiques') renderStats();
-      if (t === 'bookmakers') renderBookmakers();
-      if (t === 'suivi-operations') renderOperations();
-      if (t === 'tipsters') renderTipsters();
+      const tab = this.dataset.tab;
+      document.getElementById(tab).classList.add('active');
+      // call renderers for heavier tabs
+      if(tab==='statistiques') renderStats();
+      if(tab==='bookmakers') renderBookmakers();
+      if(tab==='suivi-operations') renderOperations();
+      if(tab==='tipsters') renderTipsters();
     });
   });
 
   document.getElementById('operationType').addEventListener('change', function(){
-    if (this.value==='Pari'){ document.getElementById('pariFields').style.display='block'; document.getElementById('depotRetraitFields').style.display='none'; }
-    else { document.getElementById('pariFields').style.display='none'; document.getElementById('depotRetraitFields').style.display='block'; }
+    if(this.value==='Pari'){ document.getElementById('pariFields').style.display='block'; document.getElementById('depotRetraitFields').style.display='none'; }
+    else{ document.getElementById('pariFields').style.display='none'; document.getElementById('depotRetraitFields').style.display='block'; }
   });
 
   document.getElementById('mise').addEventListener('input', calcGain);
   document.getElementById('cote').addEventListener('input', calcGain);
-
-  document.getElementById('matchSearch').addEventListener('input', function(){
-    clearTimeout(searchTimeout); searchTimeout = setTimeout(searchMatches, 250);
-  });
-
-  document.addEventListener('click', (e)=> {
-    const ar = document.getElementById('autocompleteResults');
-    if (!ar) return;
-    if (!document.getElementById('matchSearch').contains(e.target)) ar.style.display='none';
-  });
 }
 
-/* --------------------
-   MAIN UPDATE UI
-   -------------------- */
-function updateUI() {
+function activateTabByName(name){
+  document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  const btn = Array.from(document.querySelectorAll('.tab-button')).find(b=>b.dataset.tab===name);
+  if(btn) btn.classList.add('active');
+  const cont = document.getElementById(name);
+  if(cont) cont.classList.add('active');
+}
+
+// ----- CORE: render/update -----
+function updateSelects(){
+  const bookHtml = bookmakers.map(b=>`<option value="${b.nom}">${b.nom}</option>`).join('');
+  document.getElementById('operationBookmaker').innerHTML = '<option value="">Sélectionner</option>'+bookHtml;
+}
+
+function renderBookmakers(){
+  const el = document.getElementById('bookmakerList');
+  if(!el) return;
+  el.innerHTML = bookmakers.map(b=>`<div style="padding:8px;border:1px solid #eee;margin-bottom:6px;border-radius:6px"><strong>${b.nom}</strong> — Solde initial: ${b.soldeInitial.toFixed(2)}€</div>`).join('') || '<div>Aucun bookmaker</div>';
+}
+
+function renderOperations(){
+  const tbody = document.getElementById('operationsTableBody');
+  if(operations.length===0){ tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:20px">Aucune opération</td></tr>'; return; }
+  tbody.innerHTML = operations.map(op=>{
+    return `<tr>
+      <td>${op.dateOperation||''} ${op.heureOperation||''}</td>
+      <td>${op.type}</td>
+      <td>${op.bookmaker||''}</td>
+      <td>${op.mise?op.mise.toFixed(2):''}</td>
+      <td>${op.cote?op.cote:''}</td>
+      <td>${op.statut||''}</td>
+      <td>
+        <button onclick="editOperation(${op.id})">✏️</button>
+        <button onclick="deleteOperation(${op.id})">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTipsters(){ const el=document.getElementById('tipsterList'); el.innerHTML = tipsters.map(t=>`<div style="padding:8px;border:1px solid #eee;margin-bottom:6px;border-radius:6px">${t.nom||'(sans nom)'}</div>`).join('') || '<div>Aucun tipster</div>'; }
+
+function renderStats(){
+  const profit = operations.reduce((sum,o)=>{ if(o.type==='Pari' && (o.statut==='Gagné')) return sum + ((o.mise*(o.cote||1)) - o.mise); return sum; },0);
+  document.getElementById('statsGrid').innerHTML = `<div>Profit estimé: ${profit.toFixed(2)}€</div><div>Total opérations: ${operations.length}</div>`;
+}
+
+function updateUI(){
   updateSelects();
   renderBookmakers();
-  renderTipsters();
   renderOperations();
+  renderTipsters();
   renderStats();
   const now = new Date();
-  document.getElementById('dateOperation').value = document.getElementById('dateOperation').value || now.toISOString().split('T')[0];
-  document.getElementById('heureOperation').value = document.getElementById('heureOperation').value || now.toTimeString().slice(0,5);
-  calcGain();
+  document.getElementById('dateOperation').value = now.toISOString().split('T')[0];
+  document.getElementById('heureOperation').value = now.toTimeString().slice(0,5);
 }
 
-/* --------------------
-   BOOT
-   -------------------- */
+// ----- OPERATION CRUD -----
+function calcGain(){
+  const mise = parseFloat(document.getElementById('mise').value) || 0;
+  const cote = parseFloat(document.getElementById('cote').value) || 0;
+  const gain = mise * (cote - 1);
+  document.getElementById('gainPotentiel').textContent = gain.toFixed(2) + ' €';
+}
+
+function saveOperation(){
+  const type = document.getElementById('operationType').value;
+  const bookmaker = document.getElementById('operationBookmaker').value;
+  const dateOperation = document.getElementById('dateOperation').value;
+  const heureOperation = document.getElementById('heureOperation').value;
+  if(type==='Pari'){
+    const mise = parseFloat(document.getElementById('mise').value) || 0;
+    const cote = parseFloat(document.getElementById('cote').value) || 0;
+    const id = Date.now();
+    const op = {id,type,bookmaker,dateOperation,heureOperation,mise,cote,statut:'En cours'};
+    operations.unshift(op);
+  } else {
+    const montant = parseFloat(document.getElementById('montant').value) || 0;
+    const id = Date.now();
+    const op = {id,type,bookmaker,dateOperation,heureOperation,montant,statut:'OK'};
+    operations.unshift(op);
+  }
+  saveDataToLocalStorage();
+  if(firebaseInitialized && currentUser) saveDataToFirebase();
+  updateUI();
+  activateTabByName('suivi-operations');
+}
+
+function resetOperationForm(){
+  document.getElementById('mise').value=''; document.getElementById('cote').value=''; document.getElementById('match').value=''; calcGain();
+}
+
+function editOperation(id){
+  const op = operations.find(o=>o.id===id);
+  if(!op) return;
+  activateTabByName('enregistrer');
+  document.getElementById('operationType').value = op.type;
+  document.getElementById('operationBookmaker').value = op.bookmaker||'';
+  document.getElementById('dateOperation').value = op.dateOperation||'';
+  document.getElementById('heureOperation').value = op.heureOperation||'';
+  if(op.type==='Pari'){ document.getElementById('mise').value = op.mise; document.getElementById('cote').value = op.cote; calcGain(); }
+}
+
+function deleteOperation(id){
+  if(!confirm('Supprimer cette opération ?')) return;
+  operations = operations.filter(o=>o.id!==id);
+  saveDataToLocalStorage();
+  if(firebaseInitialized && currentUser) saveDataToFirebase();
+  updateUI();
+}
+
+// ----- BOOKMAKERS / TIPSTERS -----
+function saveBookmaker(){
+  const nom = document.getElementById('bookmakerNom').value.trim();
+  const solde = parseFloat(document.getElementById('bookmakerSolde').value) || 0;
+  if(!nom) return alert('Nom requis');
+  const id = Date.now();
+  bookmakers.push({id,nom,soldeInitial:solde});
+  saveDataToLocalStorage(); if(firebaseInitialized && currentUser) saveDataToFirebase();
+  updateUI();
+  document.getElementById('bookmakerNom').value=''; document.getElementById('bookmakerSolde').value='';
+}
+
+// ----- IMPORT / EXPORT / RESET -----
+function exportData(){
+  const data = {bookmakers,operations,tipsters,exportDate:new Date().toISOString()};
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='bankroll-backup.json'; a.click(); URL.revokeObjectURL(url);
+  alert('Exporté');
+}
+function importData(e){
+  const file = e.target.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = function(ev){
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(!confirm('Importer et remplacer ?')) return;
+      bookmakers = data.bookmakers||[]; operations = data.operations||[]; tipsters = data.tipsters||[];
+      saveDataToLocalStorage(); if(firebaseInitialized && currentUser) saveDataToFirebase();
+      updateUI();
+      alert('Import OK');
+    }catch(err){ alert('Fichier invalide'); }
+  };
+  r.readAsText(file);
+}
+function resetApp(){
+  if(!confirm('Tout supprimer ?')) return;
+  bookmakers = []; operations = []; tipsters = [];
+  saveDataToLocalStorage(); updateUI();
+}
+
+// ----- STARTUP -----
 window.addEventListener('DOMContentLoaded', function(){
   setupEvents();
   loadDataFromLocalStorage();
-  initializeApp();
   updateUI();
+  initializeApp();
 });
 </script>
 </body>
