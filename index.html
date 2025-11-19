@@ -158,7 +158,7 @@
         </div>
         
         <!-- Onglet Enregistrer -->
-        <div class="tab-content active" id="enregistrer" style="display:none;">
+        <div class="tab-content active" id="enregistrer" style="display: none;">
             <div class="card">
                 <div id="editModeBanner" class="edit-mode-banner" style="display: none;">
                     📝 Mode modification activé - Les données actuelles sont conservées
@@ -251,7 +251,7 @@
         </div>
         
         <!-- Onglet Suivi des opérations -->
-        <div class="tab-content" id="suivi-operations" style="display:none;">
+        <div class="tab-content" id="suivi-operations" style="display: none;">
             <div class="card">
                 <h2 class="card-title">Suivi des opérations</h2>
                 <div style="overflow-x: auto;">
@@ -282,7 +282,7 @@
         </div>
         
         <!-- Onglet Tipsters -->
-        <div class="tab-content" id="tipsters" style="display:none;">
+        <div class="tab-content" id="tipsters" style="display: none;">
             <div class="card">
                 <h2 class="card-title">Tipsters</h2>
                 <p class="card-description">Gérez vos tipsters et suivez leurs performances</p>
@@ -306,7 +306,7 @@
         </div>
         
         <!-- Onglet Bookmakers -->
-        <div class="tab-content" id="bookmakers" style="display:none;">
+        <div class="tab-content" id="bookmakers" style="display: none;">
             <div class="card">
                 <h2 class="card-title">Bookmakers</h2>
                 <div class="bookmaker-list" id="bookmakerList"></div>
@@ -324,7 +324,7 @@
         </div>
         
         <!-- Onglet Statistiques -->
-        <div class="tab-content" id="statistiques" style="display:none;">
+        <div class="tab-content" id="statistiques" style="display: none;">
             <div class="card">
                 <h2 class="card-title">Statistiques</h2>
                 <div class="stats-grid" id="statsGrid"></div>
@@ -332,7 +332,7 @@
         </div>
         
         <!-- Onglet Outils -->
-        <div class="tab-content" id="outils" style="display:none;">
+        <div class="tab-content" id="outils" style="display: none;">
             <div class="card">
                 <h2 class="card-title">🛠️ Outils</h2>
                 <p class="card-description">Section en construction - Bientôt de nouvelles fonctionnalités !</p>
@@ -345,7 +345,7 @@
         </div>
         
         <!-- Onglet Réglages -->
-        <div class="tab-content" id="reglages" style="display:none;">
+        <div class="tab-content" id="reglages" style="display: none;">
             <div class="card">
                 <h2 class="card-title">⚙️ Réglages</h2>
                 <p class="card-description">Gérez vos données et paramètres</p>
@@ -472,19 +472,7 @@
         }
 
         function showAppUI(user) {
-    try{ document.getElementById('authContainer') && (document.getElementById('authContainer').style.display='none'); }catch(e){}
-    try{ document.getElementById('appContent') && (document.getElementById('appContent').style.display='block'); }catch(e){}
-    try{
-        var firstBtn = document.querySelector('.tab-button');
-        if(firstBtn){
-            document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
-            firstBtn.classList.add('active');
-            var t = firstBtn.dataset.tab;
-            document.querySelectorAll('.tab-content').forEach(c=>{ c.classList.remove('active'); c.style.display='none'; });
-            var cont = document.getElementById(t);
-            if(cont){ cont.classList.add('active'); cont.style.display='block'; }
-        }
-    }catch(e){}
+    try { document.querySelector('.tabs-container').style.display = 'flex'; } catch(e){}
     
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('userInfo').style.display = 'block';
@@ -711,56 +699,15 @@
         });
 
         // === TOUTES LES AUTRES FONCTIONS RESTENT IDENTIQUES ===
-        
-function setupEvents(){
-    // Tabs click behavior + render calls
-    document.querySelectorAll('.tab-button').forEach(btn=>{
-        btn.addEventListener('click', function(e){
-            e.preventDefault();
-            document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c=>{ c.classList.remove('active'); c.style.display='none'; });
-            this.classList.add('active');
-            const tab = this.dataset.tab;
-            const content = document.getElementById(tab);
-            if(content){ content.classList.add('active'); content.style.display='block'; }
-            // renderers
-            try{ if(tab==='statistiques' && typeof renderStats==='function') renderStats(); }catch(e){}
-            try{ if(tab==='bookmakers' && typeof renderBookmakers==='function') renderBookmakers(); }catch(e){}
-            try{ if(tab==='suivi-operations' && typeof renderOperations==='function') renderOperations(); }catch(e){}
-            try{ if(tab==='tipsters' && typeof renderTipsters==='function') renderTipsters(); }catch(e){}
-        });
-    });
-
-    // operation type
-    const opType = document.getElementById('operationType');
-    if(opType) opType.addEventListener('change', function(){
-        if(this.value==='Pari'){ document.getElementById('pariFields').style.display='block'; document.getElementById('depotRetraitFields').style.display='none'; }
-        else{ document.getElementById('pariFields').style.display='none'; document.getElementById('depotRetraitFields').style.display='block'; }
-    });
-
-    // calc gain inputs
-    const mise = document.getElementById('mise');
-    const cote = document.getElementById('cote');
-    if(mise) mise.addEventListener('input', calcGain);
-    if(cote) cote.addEventListener('input', calcGain);
-
-    // match search debounce
-    const matchSearch = document.getElementById('matchSearch');
-    if(matchSearch){
-        matchSearch.addEventListener('input', function(){
-            clearTimeout(window._matchSearchTimeout);
-            window._matchSearchTimeout = setTimeout(function(){ if(typeof searchMatches==='function') searchMatches(); }, 300);
-        });
-    }
-
-    // tabs scroll indicator
-    const tabs = document.querySelector('.tabs');
-    const indicator = document.getElementById('scrollIndicator');
-    function updateIndicator(){ if(tabs && indicator){ if(tabs.scrollWidth>tabs.clientWidth) indicator.style.display='flex'; else indicator.style.display='none'; } }
-    try{ updateIndicator(); window.addEventListener('resize', updateIndicator); if(tabs) tabs.addEventListener('scroll', updateIndicator); }catch(e){}
-}
-
-});
+        function setupEvents() {
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.tab-button, .tab-content').forEach(el => {
+                        el.classList.remove('active');
+                        if (el.classList.contains('tab-content')) {
+                            el.style.display = 'none';
+                        }
+                    });
                     this.classList.add('active');
                     const tabContent = document.getElementById(this.dataset.tab);
                     tabContent.classList.add('active');
